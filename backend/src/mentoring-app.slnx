@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MentoringApp.API/MentoringApp.API.csproj" />
+  <Project Path="MentoringApp.Core/MentoringApp.Core.csproj" />
+  <Project Path="MentoringApp.Persistance/MentoringApp.Persistance.csproj" />
+</Solution>
