@@ -4,7 +4,7 @@
  * Login Page Component
  * 
  * This page provides a user authentication form with validation for:
- * - Email (required, valid email format)
+ * - Email or Username (required, valid email format or username)
  * - Password (required)
  * 
  * On successful login, stores authentication token in localStorage and
@@ -42,13 +42,24 @@ import { mockLogin } from "@/lib/mock-auth";
 /**
  * Zod validation schema for login form
  * 
- * Validates email format and ensures password is provided.
+ * Validates email/username format and ensures password is provided.
+ * Accepts either a valid email address or a username (alphanumeric + underscores).
  */
 const loginSchema = z.object({
-  email: z
+  emailOrUsername: z
     .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
+    .min(1, "Email or username is required")
+    .refine(
+      (value) => {
+        // Check if it's a valid email or username
+        const isEmail = z.string().email().safeParse(value).success;
+        const isUsername = /^[a-zA-Z0-9_]+$/.test(value);
+        return isEmail || isUsername;
+      },
+      {
+        message: "Please enter a valid email address or username",
+      }
+    ),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -70,7 +81,7 @@ export default function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      emailOrUsername: "",
       password: "",
     },
     mode: "onBlur",
@@ -90,14 +101,14 @@ export default function LoginPage() {
     setSubmitError(null);
 
     try {
-      const response = await mockLogin(values.email, values.password);
+      const response = await mockLogin(values.emailOrUsername, values.password);
 
       if (response.success && response.token) {
         // Token is automatically stored by mockLogin
         // Redirect to home page (or dashboard when it will be available)
         router.push("/");
       } else {
-        setSubmitError(response.message || "Invalid email or password");
+        setSubmitError(response.message || "Invalid email/username or password");
       }
     } catch (error) {
       setSubmitError("An unexpected error occurred. Please try again.");
@@ -113,7 +124,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-semibold">Sign in</CardTitle>
           <CardDescription>
-            Enter your email and password to access your account
+            Enter your email or username and password to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -121,13 +132,13 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="emailOrUsername"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email or Username</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
+                        type="text"
                         placeholder="john@example.com"
                         {...field}
                         disabled={isSubmitting}

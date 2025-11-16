@@ -299,48 +299,53 @@ export function logout(): void {
 }
 
 /**
- * Authenticates a user with email and password
+ * Authenticates a user with email/username and password
  * 
  * Validates credentials against stored users, generates an authentication token
- * if successful, and stores it in localStorage.
- * @param {string} email - User's email address (case-insensitive, whitespace trimmed)
+ * if successful, and stores it in localStorage. Can authenticate using either
+ * email address or username.
+ * @param {string} emailOrUsername - User's email address or username (case-insensitive, whitespace trimmed)
  * @param {string} password - User's password (must match exactly)
  * @returns {Promise<LoginResponse>} Response object with success status, message, token, and user data
  * 
  * @example
  * const response = await mockLogin("john@example.com", "password123");
+ * // or
+ * const response = await mockLogin("johndoe", "password123");
  * if (response.success) {
  *   console.log("Logged in as:", response.user?.fullName);
  *   // Token is automatically stored in localStorage
  * }
  */
 export async function mockLogin(
-  email: string,
+  emailOrUsername: string,
   password: string
 ): Promise<LoginResponse> {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Validate inputs
-  const trimmedEmail = email.trim();
-  if (!trimmedEmail || !password) {
+  const trimmedIdentifier = emailOrUsername.trim();
+  if (!trimmedIdentifier || !password) {
     return {
       success: false,
-      message: 'Email and password are required',
+      message: 'Email/username and password are required',
     };
   }
 
-  // Find user by email
+  // Find user by email or username
   const users = getUsers();
-  const normalizedEmail = trimmedEmail.toLowerCase();
+  const normalizedIdentifier = trimmedIdentifier.toLowerCase();
   const user = users.find(
-    (u) => u.email.toLowerCase() === normalizedEmail
+    (u) => 
+      u.email.toLowerCase() === normalizedIdentifier ||
+      u.userName.toLowerCase() === normalizedIdentifier
   );
 
   // Check if user exists
   if (!user) {
     return {
       success: false,
-      message: 'Invalid email or password',
+      message: 'Invalid email/username or password',
     };
   }
 
@@ -348,7 +353,7 @@ export async function mockLogin(
   if (user.password !== password) {
     return {
       success: false,
-      message: 'Invalid email or password',
+      message: 'Invalid email/username or password',
     };
   }
 
