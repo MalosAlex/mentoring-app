@@ -7,7 +7,7 @@
  * - Full Name (required, min 2 characters)
  * - Username (required, min 3 characters, alphanumeric + underscores only)
  * - Email (required, valid email format)
- * - Password (required, min 8 characters, must contain letter and number)
+ * - Password (required, min 8 characters, must contain letter, number, and special character)
  * - Confirm Password (must match password)
  * 
  * On successful signup, redirects to the login page.
@@ -48,7 +48,7 @@ import { mockSignup } from "@/lib/mock-auth";
  * - Full name: minimum 2 characters
  * - Username: minimum 3 characters, alphanumeric + underscores only
  * - Email: valid email format
- * - Password: minimum 8 characters, must contain at least one letter and one number
+ * - Password: minimum 8 characters, must contain at least one letter, one number, and one special character
  * - Confirm password: must match the password field
  */
 const signupSchema = z
@@ -56,7 +56,11 @@ const signupSchema = z
     fullName: z
       .string()
       .min(1, "Full name is required")
-      .min(2, "Full name must be at least 2 characters"),
+      .min(2, "Full name must be at least 2 characters")
+      .regex(
+        /^[\p{L}\s'-]+$/u,
+        "Full name can only contain letters, spaces, apostrophes, and hyphens"
+      ),
     userName: z
       .string()
       .min(1, "Username is required")
@@ -74,8 +78,8 @@ const signupSchema = z
       .min(1, "Password is required")
       .min(8, "Password must be at least 8 characters")
       .regex(
-        /^(?=.*[a-zA-Z])(?=.*\d)/,
-        "Password must contain at least one letter and one number"
+        /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/,
+        "Password must contain at least one letter, one number, and one special character"
       ),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
