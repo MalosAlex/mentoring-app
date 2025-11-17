@@ -1,0 +1,67 @@
+## Build artifacts
+bin/
+obj/
+out/
+
+## User-specific files
+*.user
+*.suo
+*.userprefs
+*.rsuser
+
+## Logs
+*.log
+
+## Visual Studio
+.vs/
+.vscode/
+
+## Rider
+.idea/
+
+## ASP.NET Core publish output
+/wwwroot/
+*.db
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+
+## Environment files
+*.env
+
+## OS generated files
+.DS_Store
+Thumbs.db
+
+## Tooling
+*.cache
+*.npmrc
+node_modules/
+
+## Azure / Cloud
+.local/
+.AzureFunctions/
+storage/
+
+## Certificates
+*.pfx
+*.p12
+
+## EF Core Migrations bundles
+*.dll
+*.exe
+
+## dotnet user secrets
+**/secrets.json
+
+## JetBrains Rider plugin files
+*.sln.iml
+
+## Swagger auto-generated files
+swagger.json
+swagger.yaml
