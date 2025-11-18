@@ -1,4 +1,5 @@
-﻿using Microsoft.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 namespace MentoringApp.API;
 
@@ -9,7 +10,19 @@ public static class ConfigureServices
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
-        services.AddControllers();
+        services.AddControllers()
+            .ConfigureApiBehaviorOptions(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var firstErrorMessage = context.ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .FirstOrDefault();
+
+                    return new BadRequestObjectResult(firstErrorMessage);
+                };
+            });
 
         services.AddOpenApi();
 

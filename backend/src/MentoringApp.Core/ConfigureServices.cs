@@ -10,6 +10,7 @@ public static class ConfigureServices
     public static IServiceCollection ConfigureCoreServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddTransient<ICatsService, CatsService>();
+        services.AddTransient<IUserService, UserService>();
 
         return services;
     }
