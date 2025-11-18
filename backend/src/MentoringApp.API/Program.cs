@@ -32,6 +32,7 @@ public partial class Program
 
         app.UseCors();
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();

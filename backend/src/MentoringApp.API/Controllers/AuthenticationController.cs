@@ -1,6 +1,8 @@
 using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using System.Linq;
 
 namespace MentoringApp.API.Controllers;
@@ -8,14 +10,14 @@ namespace MentoringApp.API.Controllers;
 
 [ApiController]
 [Route("api")]
-public class UsersController : ControllerBase
+public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly ILogger<UsersController> _logger;
+    private readonly ILogger<AuthController> _logger;
 
-    public UsersController(
+    public AuthController(
         IUserService userService,
-        ILogger<UsersController> logger
+        ILogger<AuthController> logger
     )
     {
         _userService = userService;
@@ -35,5 +37,18 @@ public class UsersController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        var token = await _userService.LoginAsync(request);
+        if(token == null)
+        {
+            return Unauthorized("Invalid email or password");
+        }
+
+        return Ok(new {Token = token});
+    }
+
 
 }
