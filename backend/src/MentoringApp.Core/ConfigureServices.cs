@@ -11,6 +11,8 @@ public static class ConfigureServices
     {
         services.AddTransient<ICatsService, CatsService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddDistributedMemoryCache();
+        services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 
         return services;
     }

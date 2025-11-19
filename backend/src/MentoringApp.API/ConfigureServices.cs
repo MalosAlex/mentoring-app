@@ -16,16 +16,16 @@ public static class ConfigureServices
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
             {
-                Description = "JWT Authorization header using the Bearer scheme. " +
-                            "Enter 'Bearer' [space] and then your token in the text input below. " +
-                            "\n\nExample: \"Bearer 12345abcdef\"",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
-                BearerFormat = "JWT"
+                BearerFormat = "JWT",
+                Description = "JWT Authorization header using the Bearer scheme."
+            });
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("bearer", document)] = []
             });
         });
 
