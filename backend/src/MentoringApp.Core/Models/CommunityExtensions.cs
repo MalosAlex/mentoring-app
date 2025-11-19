@@ -8,6 +8,7 @@ internal static class CommunityExtensions
     {
         return new CommunityResponse
         {
+            Id = entity.Id,
             Name = entity.Name,
             Description = entity.Description,
         };
