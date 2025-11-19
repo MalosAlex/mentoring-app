@@ -5,8 +5,7 @@ namespace MentoringApp.Core.Models;
 public class LoginRequest
 {
     [Required]
-    [EmailAddress]
-    public string Email{get; set;}
+    public string Identifier{get; set;}
 
     [Required]
     public string Password{get;set;}

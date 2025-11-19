@@ -26,7 +26,11 @@ internal class UserService : IUserService
 
     public async Task<string?> LoginAsync(LoginRequest request)
     {
-        var user = await _userRepository.GetUserByEmailAsync(request.Email);
+        var isEmail = request.Identifier.Contains('@');
+    
+        var user = isEmail 
+            ? await _userRepository.GetUserByEmailAsync(request.Identifier)
+            : await _userRepository.GetUserByUsernameAsync(request.Identifier);
         if(user == null)
         {
             return null;

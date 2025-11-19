@@ -49,7 +49,7 @@ public class AuthController : ControllerBase
         var token = await _userService.LoginAsync(request);
         if(token == null)
         {
-            return Unauthorized("Invalid email or password");
+            return Unauthorized("Invalid credentials");
         }
 
         return Ok(new {Token = token});
@@ -73,7 +73,7 @@ public class AuthController : ControllerBase
 
         await _tokenBlacklistService.BlacklistTokenAsync(token, expiration);
 
-        return Ok(new { Message = "Logged out successfully" });
+        return Ok("Logged out successfully");
     }
 
 }
