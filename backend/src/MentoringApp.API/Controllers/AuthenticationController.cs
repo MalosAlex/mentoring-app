@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
         var authHeader = Request.Headers[HeaderNames.Authorization].ToString();
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
         {
-            return BadRequest(new {Error = "Invalid authorization header"});
+            return BadRequest("Invalid authorization header");
         }
 
         var token = authHeader.Substring("Bearer ".Length).Trim();

@@ -15,8 +15,8 @@ public class PasswordComplexityAttribute : ValidationAttribute
         }
 
         var hasNumber = new Regex(@"[0-9]+");
-        var hasUpperChar = new Regex(@"[A-Z]+");
-        var hasLowerChar = new Regex(@"[a-z]+");
+        var hasUpperChar = new Regex(@"\p{Lu}");
+        var hasLowerChar = new Regex(@"\p{Ll}");
 
         if (!hasLowerChar.IsMatch(password))
         {
