@@ -12,6 +12,7 @@ public static class ConfigureServices
         services.AddDbContext<DataContext>();
 
         services.AddTransient<ICatsRepository, CatsRepository>();
+        services.AddTransient<IUserRepository, UserRepository>();
 
         return services;
     }

@@ -1,4 +1,5 @@
 using MentoringApp.API;
+using MentoringApp.API.Middleware;
 using MentoringApp.Core;
 using MentoringApp.Persistance;
 
@@ -32,6 +33,8 @@ public partial class Program
 
         app.UseCors();
 
+        app.UseAuthentication();
+        app.UseMiddleware<TokenBlacklistMiddleware>();
         app.UseAuthorization();
 
         app.MapControllers();
