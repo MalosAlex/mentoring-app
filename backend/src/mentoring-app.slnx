@@ -2,4 +2,5 @@
   <Project Path="MentoringApp.API/MentoringApp.API.csproj" />
   <Project Path="MentoringApp.Core/MentoringApp.Core.csproj" />
   <Project Path="MentoringApp.Persistance/MentoringApp.Persistance.csproj" />
+  <Project Path="MentoringApp.Tests/MentoringApp.Tests.csproj" Id="1cb16480-7a2c-4f29-90a1-0a8aa59e6fa1" />
 </Solution>

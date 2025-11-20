@@ -1,5 +1,6 @@
 ﻿using MentoringApp.Persistance.Abstractions;
 using MentoringApp.Persistance.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,10 +10,12 @@ public static class ConfigureServices
 {
     public static IServiceCollection ConfigurePersistanceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<DataContext>();
+        services.AddDbContext<DataContext>(
+            //options => options.UseInMemoryDatabase("MyInMemoryDb")
+            );
 
-        services.AddTransient<ICatsRepository, CatsRepository>();
         services.AddTransient<IUserRepository, UserRepository>();
+        services.AddTransient<ICommunityRepository, CommunityRepository>();
 
         return services;
     }

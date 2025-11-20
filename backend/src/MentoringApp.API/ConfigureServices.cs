@@ -1,8 +1,5 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using MentoringApp.Core.Abstractions;
+﻿using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;

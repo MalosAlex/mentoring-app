@@ -9,7 +9,7 @@ public static class ConfigureServices
 {
     public static IServiceCollection ConfigureCoreServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddTransient<ICatsService, CatsService>();
+        services.AddTransient<ICommunityService, CommunityService>();
         services.AddScoped<IUserService, UserService>();
         services.AddDistributedMemoryCache();
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();

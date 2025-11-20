@@ -23,6 +23,11 @@ internal class UserRepository : IUserRepository
         return _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    public async Task<User?> GetUserByIdAsync(int id)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+    }
+
     public Task<User?> GetUserByUsernameAsync(string username)
     {
         return _context.Users.FirstOrDefaultAsync(u => u.Username == username);

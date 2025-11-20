@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Test framework -->
+		<PackageReference Include="NUnit" Version="4.3.2" />
+		<PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+
+		<!-- Mocking framework -->
+		<PackageReference Include="NSubstitute" Version="5.1.0" />
+
+		<!-- Code coverage -->
+		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\MentoringApp.Core\MentoringApp.Core.csproj" />
+	  <ProjectReference Include="..\MentoringApp.Persistance\MentoringApp.Persistance.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="NUnit.Framework" />
+	</ItemGroup>
+
+</Project>
