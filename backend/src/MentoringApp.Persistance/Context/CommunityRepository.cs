@@ -8,6 +8,8 @@ internal class CommunityRepository : ICommunityRepository
 {
     private readonly DataContext _context;
 
+    private const int PAGE_SIZE = 20;
+
     public CommunityRepository(DataContext context)
     {
         _context = context;
@@ -28,6 +30,7 @@ internal class CommunityRepository : ICommunityRepository
     {
         return await _context.Communities
             .Include(c => c.Users)
+            .Take(PAGE_SIZE)
             .ToListAsync();
     }
 

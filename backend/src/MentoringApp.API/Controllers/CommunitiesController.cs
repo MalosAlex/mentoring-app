@@ -51,9 +51,9 @@ public class CommunitiesController : Controller
     [Authorize]
     public async Task<IActionResult> Join([FromRoute] int communityId)
     {
-        _logger.LogInformation("Getting all Communities.");
-
         int userId = GetUserIdFromToken();
+
+        _logger.LogInformation("{UserId} joining community {CommunityId}.", userId, communityId);
 
         await _communityService.Join(communityId, userId);
 
@@ -64,9 +64,9 @@ public class CommunitiesController : Controller
     [Authorize]
     public async Task<IActionResult> Leave([FromRoute] int communityId)
     {
-        _logger.LogInformation("Getting all Communities.");
-
         int userId = GetUserIdFromToken();
+
+        _logger.LogInformation("{UserId} leaving community {CommunityId}.", userId, communityId);
 
         await _communityService.Leave(communityId, userId);
 
