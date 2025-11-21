@@ -1,0 +1,184 @@
+"use client";
+
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Heart, MessageCircle, ImagePlus } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { mockCommunities, getPostsByCommunity, formatTimestamp, type Post } from "@/lib/mock-data";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { CreatePostButton } from "@/components/create-post-button";
+import { usePosts } from "@/contexts/posts-context";
+
+export default function CommunityFeedPage() {
+  const params = useParams();
+  const communityId = params.id as string;
+  const { addPost } = usePosts();
+  
+  const community = mockCommunities.find(c => c.id === communityId);
+  const [posts, setPosts] = useState<Post[]>(getPostsByCommunity(communityId));
+  const [isLoading] = useState(false);
+
+  const handleToggleLike = (postId: string) => {
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            isLiked: !post.isLiked,
+            likes: post.isLiked ? post.likes - 1 : post.likes + 1
+          }
+        : post
+    ));
+  };
+
+  const handleCreatePost = (content: string, image?: string) => {
+    const newPost: Post = {
+      id: `post-${Date.now()}`,
+      communityId: communityId,
+      author: {
+        name: "John Doe",
+      },
+      content,
+      image,
+      timestamp: new Date(),
+      likes: 0,
+      isLiked: false,
+      comments: 0,
+    };
+
+    setPosts([newPost, ...posts]);
+    addPost(newPost); // Add to global user posts
+  };
+
+  if (!community) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Community not found</h1>
+          <Link href="/communities">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Communities
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading posts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 max-w-4xl">
+      {/* Create Post Button */}
+      <CreatePostButton 
+        communityName={community.name}
+        onCreatePost={handleCreatePost}
+      />
+
+      {/* Header */}
+      <div className="mb-6">
+        <Link href="/communities">
+          <Button variant="ghost" size="sm" className="mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Communities
+          </Button>
+        </Link>
+        <h1 className="text-4xl font-bold mb-2">{community.name}</h1>
+        <p className="text-muted-foreground">{community.description}</p>
+      </div>
+
+      <Separator className="mb-6" />
+
+      {/* Empty State */}
+      {posts.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-6 mb-4">
+              <ImagePlus className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
+            <p className="text-muted-foreground text-center max-w-sm">
+              Be the first to post in this community and start the conversation!
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Posts Feed */
+        <div className="space-y-6">
+          {posts.map((post) => (
+            <Card key={post.id}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>
+                      {post.author.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold">{post.author.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatTimestamp(post.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-base mb-4 whitespace-pre-wrap">{post.content}</p>
+                
+                {post.image && (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
+                    <Image
+                      src={post.image}
+                      alt="Post image"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+
+                <Separator className="my-4" />
+
+                <div className="flex items-center gap-6">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => handleToggleLike(post.id)}
+                  >
+                    <Heart className={`h-4 w-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    <span>{post.likes}</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-2"
+                    asChild
+                  >
+                    <Link href={`/communities/${communityId}/posts/${post.id}`}>
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{post.comments}</span>
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
