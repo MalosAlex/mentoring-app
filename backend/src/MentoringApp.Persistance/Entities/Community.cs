@@ -6,5 +6,6 @@ public class Community
     public string Name { get; set; }
     public string Description { get; set; }
 
-    public List<User> Users { get; set; }
+    public List<User> Users { get; set; } = new();
+    public List<Post> Posts { get; set; } = new();
 }

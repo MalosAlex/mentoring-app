@@ -16,6 +16,7 @@ public static class ConfigureServices
 
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddTransient<ICommunityRepository, CommunityRepository>();
+        services.AddTransient<IPostRepository, PostRepository>();
 
         return services;
     }
