@@ -2,7 +2,7 @@ using MentoringApp.API;
 using MentoringApp.API.Middleware;
 using MentoringApp.Core;
 using MentoringApp.Persistance;
-
+/**/
 public partial class Program
 {
     private static void Main(string[] args)
