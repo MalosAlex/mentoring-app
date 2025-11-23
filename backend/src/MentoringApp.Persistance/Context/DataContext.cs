@@ -9,6 +9,8 @@ internal class DataContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Community> Communities { get; set; }
     public DbSet<Post> Posts { get; set; }
+    public DbSet<Reaction> Reactions { get; set; }
+    public DbSet<Comment> Comments { get; set; }
 
     private readonly IConfiguration _configuration;
     public DataContext(DbContextOptions options, IConfiguration configuration) : base(options)
@@ -47,6 +49,38 @@ internal class DataContext : DbContext
             entity.HasOne(p => p.Community)
                 .WithMany(c => c.Posts)
                 .HasForeignKey(p => p.CommunityId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Reaction>(entity =>
+        {
+            entity.Property(r => r.Type).IsRequired().HasMaxLength(30);
+            entity.HasIndex(r => new { r.PostId, r.UserId }).IsUnique();
+
+            entity.HasOne(r => r.Post)
+                .WithMany()
+                .HasForeignKey(r => r.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Comment>(entity =>
+        {
+            entity.Property(c => c.Text).IsRequired().HasMaxLength(1000);
+            entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(c => c.Post)
+                .WithMany()
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

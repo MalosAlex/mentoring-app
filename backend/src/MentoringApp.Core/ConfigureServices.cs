@@ -14,7 +14,8 @@ public static class ConfigureServices
         services.AddScoped<IUserService, UserService>();
         services.AddDistributedMemoryCache();
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
-
+        services.AddTransient<IReactionService, ReactionService>();
+        services.AddTransient<ICommentService, CommentService>();
         return services;
     }
 }

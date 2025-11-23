@@ -30,15 +30,21 @@ public class PostsController : ControllerBase
 
     private readonly ILogger<PostsController> _logger;
     private readonly IPostService _postService;
+    private readonly IReactionService _reactionService;
+    private readonly ICommentService _commentService;
     private readonly IWebHostEnvironment _environment;
 
     public PostsController(
         ILogger<PostsController> logger,
         IPostService postService,
+        IReactionService reactionService,
+        ICommentService commentService,
         IWebHostEnvironment environment)
     {
         _logger = logger;
         _postService = postService;
+        _reactionService = reactionService;
+        _commentService = commentService;
         _environment = environment;
     }
 
@@ -74,17 +80,35 @@ public class PostsController : ControllerBase
             mediaUrl = await SaveMediaFileAsync(form.Media);
         }
 
-        var postRequest = new CreatePostRequest
+        var created = await _postService.CreateAsync(new CreatePostRequest
         {
             Caption = form.Caption,
             CommunityId = communityId,
             UserId = userId,
             MediaUrl = mediaUrl
-        };
-
-        var created = await _postService.CreateAsync(postRequest);
+        });
 
         return CreatedAtAction(nameof(Get), new { communityId, pageNumber = 1, pageSize = 1 }, created);
+    }
+
+    [HttpPost("{postId}/react")]
+    public async Task<IActionResult> React(int communityId, int postId, [FromBody] ReactToPostRequest body)
+    {
+        var userId = GetUserIdFromToken();
+        body.PostId = postId;
+        body.UserId = userId;
+        var result = await _reactionService.ReactAsync(body);
+        return Ok(result);
+    }
+
+    [HttpPost("{postId}/comment")]
+    public async Task<IActionResult> Comment(int communityId, int postId, [FromBody] AddCommentRequest body)
+    {
+        var userId = GetUserIdFromToken();
+        body.PostId = postId;
+        body.UserId = userId;
+        var result = await _commentService.AddAsync(body);
+        return Ok(result);
     }
 
     private async Task<string> SaveMediaFileAsync(IFormFile file)
