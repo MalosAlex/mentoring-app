@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 namespace MentoringApp.Core.Models;
 
 public class PostResponse
@@ -10,5 +11,7 @@ public class PostResponse
     public string? MediaUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public string AuthorName { get; set; } = string.Empty;
+    public int ReactionCount { get; set; }
+    public List<PostCommentDto> Comments { get; set; } = new();
 }
 

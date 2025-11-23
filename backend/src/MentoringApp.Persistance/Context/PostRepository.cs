@@ -31,5 +31,37 @@ internal class PostRepository : IPostRepository
             .Take(take)
             .ToListAsync();
     }
+
+    public async Task<Post?> GetByIdAsync(int postId)
+        => await _context.Posts.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == postId);
+
+    public async Task<PostReaction?> GetReactionAsync(int postId, int userId)
+        => await _context.PostReactions.FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == userId);
+
+    public async Task UpsertReactionAsync(PostReaction reaction)
+    {
+        var existing = await GetReactionAsync(reaction.PostId, reaction.UserId);
+        if (existing is null)
+        {
+            await _context.PostReactions.AddAsync(reaction);
+        }
+        else
+        {
+            existing.ReactionType = reaction.ReactionType;
+            existing.CreatedAt = reaction.CreatedAt;
+            _context.PostReactions.Update(existing);
+        }
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> CountReactionsAsync(int postId)
+        => await _context.PostReactions.CountAsync(r => r.PostId == postId);
+
+    public async Task<PostComment> AddCommentAsync(PostComment comment)
+    {
+        await _context.PostComments.AddAsync(comment);
+        await _context.SaveChangesAsync();
+        return comment;
+    }
 }
 

@@ -87,6 +87,28 @@ public class PostsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { communityId, pageNumber = 1, pageSize = 1 }, created);
     }
 
+    [HttpPost("{id}/react")]
+    public async Task<IActionResult> React(int communityId, int id, [FromBody] ReactRequest body)
+    {
+        if (string.IsNullOrWhiteSpace(body.ReactionType))
+            return BadRequest("ReactionType required");
+
+        var userId = GetUserIdFromToken();
+        var result = await _postService.ReactAsync(id, userId, body.ReactionType);
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/comment")]
+    public async Task<IActionResult> Comment(int communityId, int id, [FromBody] PostCommentDto body)
+    {
+        if (string.IsNullOrWhiteSpace(body.Content))
+            return BadRequest("Content required");
+
+        var userId = GetUserIdFromToken();
+        var result = await _postService.CommentAsync(id, userId, body.Content);
+        return Ok(result);
+    }
+
     private async Task<string> SaveMediaFileAsync(IFormFile file)
     {
         var uploadsPath = Path.Combine(GetWebRootPath(), "uploads");
@@ -124,5 +146,15 @@ public class PostsController : ControllerBase
 
         return int.Parse(jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.Sub).Value);
     }
+}
+
+public class ReactRequest
+{
+    public string ReactionType { get; set; } = string.Empty;
+}
+
+public class PostCommentDto
+{
+    public string Content { get; set; } = string.Empty;
 }
 
