@@ -10,4 +10,6 @@ public class User
 
     public List<Community> Communities { get; set; } = new();
     public List<Post> Posts { get; set; } = new();
+    public List<PostReaction> PostReactions { get; set; } = new();
+    public List<PostComment> PostComments { get; set; } = new();
 }

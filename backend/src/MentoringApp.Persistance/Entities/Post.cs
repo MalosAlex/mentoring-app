@@ -12,5 +12,7 @@ public class Post
     public string Caption { get; set; }
     public string? MediaUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public List<PostReaction> Reactions { get; set; } = new();
+    public List<PostComment> Comments { get; set; } = new();
 }
 

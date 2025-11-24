@@ -90,5 +90,66 @@ internal class PostService : IPostService
             HasMore = hasMore
         };
     }
+
+    public async Task<PostReactionResponse> ReactAsync(int postId, int userId, string reactionType)
+    {
+        if (string.IsNullOrWhiteSpace(reactionType))
+            throw new ArgumentException("Reaction type required", nameof(reactionType));
+
+        var post = await _postRepository.GetByIdAsync(postId) ?? throw new ArgumentException("Post not found", nameof(postId));
+        var user = await _userRepository.GetUserByIdAsync(userId) ?? throw new ArgumentException("User not found", nameof(userId));
+
+        var reaction = new PostReaction
+        {
+            PostId = postId,
+            UserId = userId,
+            ReactionType = reactionType.Trim().ToLowerInvariant(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _postRepository.UpsertReactionAsync(reaction);
+        var total = await _postRepository.CountReactionsAsync(postId);
+
+        return new PostReactionResponse
+        {
+            PostId = postId,
+            UserId = userId,
+            ReactionType = reaction.ReactionType,
+            CreatedAt = reaction.CreatedAt,
+            TotalReactions = total
+        };
+    }
+
+    public async Task<PostCommentDto> CommentAsync(int postId, int userId, string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            throw new ArgumentException("Content required", nameof(content));
+
+        if (content.Length > 1000)
+            throw new ArgumentException("Content too long", nameof(content));
+
+        var post = await _postRepository.GetByIdAsync(postId) ?? throw new ArgumentException("Post not found", nameof(postId));
+        var user = await _userRepository.GetUserByIdAsync(userId) ?? throw new ArgumentException("User not found", nameof(userId));
+
+        var comment = new PostComment
+        {
+            PostId = postId,
+            UserId = userId,
+            Content = content.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        comment = await _postRepository.AddCommentAsync(comment);
+
+        return new PostCommentDto
+        {
+            Id = comment.Id,
+            PostId = postId,
+            UserId = userId,
+            Content = comment.Content,
+            CreatedAt = comment.CreatedAt,
+            AuthorName = user.FullName ?? user.Username
+        };
+    }
 }
 
