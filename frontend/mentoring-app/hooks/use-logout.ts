@@ -11,7 +11,8 @@
  */
 
 import { useRouter } from "next/navigation";
-import { logout as clearAuthToken } from "@/lib/mock-auth";
+import { useCallback } from "react";
+import { logout as performLogout } from "@/lib/auth-service";
 
 /**
  * useLogout Hook
@@ -44,13 +45,13 @@ export function useLogout() {
    * 
    * @param {string} redirectTo - Path to redirect to after logout (default: "/auth/login")
    */
-  const logout = (redirectTo: string = "/auth/login") => {
-    // Clear the authentication token
-    clearAuthToken();
-    
-    // Redirect to specified page (default: login)
-    router.push(redirectTo);
-  };
+  const logout = useCallback(
+    async (redirectTo: string = "/auth/login") => {
+      await performLogout();
+      router.push(redirectTo);
+    },
+    [router]
+  );
 
   return { logout };
 }

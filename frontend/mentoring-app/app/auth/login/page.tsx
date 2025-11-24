@@ -37,7 +37,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { mockLogin } from "@/lib/mock-auth";
+import { login } from "@/lib/auth-service";
 
 /**
  * Zod validation schema for login form
@@ -101,10 +101,10 @@ export default function LoginPage() {
     setSubmitError(null);
 
     try {
-      const response = await mockLogin(values.emailOrUsername, values.password);
+      const response = await login(values.emailOrUsername, values.password);
 
       if (response.success && response.token) {
-        // Token is automatically stored by mockLogin
+        // Token is stored by the auth service
         // Redirect to home page (or dashboard when it will be available)
         router.push("/");
       } else {
