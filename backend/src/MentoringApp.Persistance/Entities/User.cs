@@ -8,5 +8,6 @@ public class User
     public string Email {get; set;}
     public string PasswordHash {get; set;}
 
-    public List<Community> Communities { get; set; }
+    public List<Community> Communities { get; set; } = new();
+    public List<Post> Posts { get; set; } = new();
 }
