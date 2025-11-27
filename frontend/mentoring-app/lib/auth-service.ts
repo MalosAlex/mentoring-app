@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "http://localhost:5216/api";
+const DEFAULT_API_BASE_URL = "https://localhost:7117/api";
 const TOKEN_STORAGE_KEY = "mentoring_app_token";
 
 type StoredToken = {
@@ -25,6 +25,8 @@ type LogoutResult = {
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/$/, "");
+
+console.log(API_BASE_URL)
 
 const apiRoutes = {
   login: `${API_BASE_URL}/login`,
