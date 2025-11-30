@@ -22,9 +22,30 @@ interface CreatePostButtonProps {
   onCreatePost?: (content: string, image?: string) => void;
 }
 
-export function CreatePostButton({ communityName, onCreatePost }: CreatePostButtonProps) {
+const postContentMaxLength = 3000;
+
+function ValidatePostContent(content: string): string | null {
+  const trimmedContent = content.trim();
+  const contentLength = trimmedContent.length;
+
+  if (contentLength === 0) {
+    return "Post content cannot be empty.";
+  }
+
+  if (contentLength > postContentMaxLength) {
+    return `Post content cannot be longer than ${postContentMaxLength} characters.`;
+  }
+
+  return null;
+}
+
+export function CreatePostButton({
+  communityName,
+  onCreatePost,
+}: CreatePostButtonProps) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
+  const [contentError, setContentError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,19 +94,37 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
     }
   };
 
-  const handleSubmit = () => {
-    if (!content.trim() && !imagePreview) return;
+  const handleContentChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const newValue = e.target.value;
+    const validationError = ValidatePostContent(newValue);
 
-    // Mock: In real app, this would upload to backend
-    if (onCreatePost) {
-      onCreatePost(content, imagePreview || undefined);
+    setContent(newValue);
+    setContentError(validationError);
+  };
+
+  const handleSubmit = () => {
+    const trimmedContent = content.trim();
+    const validationError = ValidatePostContent(trimmedContent);
+
+    if (validationError !== null) {
+      setContentError(validationError);
+      return;
     }
 
-    // Reset form
+    if (onCreatePost) {
+      onCreatePost(trimmedContent, imagePreview || undefined);
+    }
+
     setContent("");
+    setContentError(null);
     setImagePreview(null);
     setOpen(false);
   };
+
+  const isPostContentValid =
+    contentError === null && content.trim().length > 0;
 
   return (
     <>
@@ -116,7 +155,9 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">Posting to:</p>
+                  <p className="text-xs text-muted-foreground">
+                    Posting to:
+                  </p>
                 </div>
               </div>
               <Badge variant="secondary" className="gap-1">
@@ -125,12 +166,25 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
             </div>
 
             {/* Post Content */}
-            <Textarea
-              placeholder="What's on your mind?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none"
-            />
+            <div className="space-y-1">
+              <Textarea
+                placeholder="What's on your mind?"
+                value={content}
+                onChange={handleContentChange}
+                className="min-h-[120px] resize-none"
+                maxLength={postContentMaxLength}
+              />
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {content.length}/{postContentMaxLength} characters
+                </span>
+                {contentError && (
+                  <span className="text-destructive">
+                    {contentError}
+                  </span>
+                )}
+              </div>
+            </div>
 
             {/* Image Preview */}
             {imagePreview && (
@@ -192,10 +246,7 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!content.trim() && !imagePreview}
-            >
+            <Button onClick={handleSubmit} disabled={!isPostContentValid}>
               Post
             </Button>
           </DialogFooter>
@@ -204,4 +255,3 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
     </>
   );
 }
-
