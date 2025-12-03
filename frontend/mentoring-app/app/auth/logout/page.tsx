@@ -31,7 +31,7 @@ export default function LogoutPage() {
    */
   useEffect(() => {
     // Clear token and redirect to login
-    logout("/auth/login");
+    void logout("/auth/login");
   }, [logout]);
 
   return (
