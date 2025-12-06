@@ -1,7 +1,10 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\backend",
+    "\\backend\\src",
+    "\\frontend\\mentoring-app"
   ],
-  "SelectedNode": "\\mentoring-app.slnx",
+  "SelectedNode": "\\backend",
   "PreviewInSolutionExplorer": false
 }

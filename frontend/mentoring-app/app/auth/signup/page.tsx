@@ -39,7 +39,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { mockSignup } from "@/lib/mock-auth";
+import { registerUser } from "@/lib/auth-service";
 
 /**
  * Zod validation schema for signup form
@@ -128,12 +128,12 @@ export default function SignupPage() {
     setSubmitError(null);
 
     try {
-      const response = await mockSignup(
-        values.fullName,
-        values.userName,
-        values.email,
-        values.password
-      );
+      const response = await registerUser({
+        fullName: values.fullName,
+        userName: values.userName,
+        email: values.email,
+        password: values.password,
+      });
 
       if (response.success) {
         // Redirect to login page on success
