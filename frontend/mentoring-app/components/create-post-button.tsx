@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Image as ImageIcon, X } from "lucide-react";
+import { Plus, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -16,13 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { createPost, type PostResponse } from "@/lib/posts-service";
 
 interface CreatePostButtonProps {
+  communityId: number;
   communityName: string;
-  onCreatePost?: (content: string, image?: string) => void;
+  onCreatePost?: (post: PostResponse) => void;
 }
 
-const postContentMaxLength = 3000;
+// Backend validation: MaxLength(500) for Caption
+const postContentMaxLength = 500;
 
 function ValidatePostContent(content: string): string | null {
   const trimmedContent = content.trim();
@@ -40,6 +43,7 @@ function ValidatePostContent(content: string): string | null {
 }
 
 export function CreatePostButton({
+  communityId,
   communityName,
   onCreatePost,
 }: CreatePostButtonProps) {
@@ -47,7 +51,10 @@ export function CreatePostButton({
   const [content, setContent] = useState("");
   const [contentError, setContentError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -78,17 +85,30 @@ export function CreatePostButton({
   };
 
   const handleImageFile = (file: File) => {
-    if (file.type.startsWith("image/")) {
+    // Backend accepts: image/jpeg, image/png, image/gif, image/webp, video/mp4
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "video/mp4",
+    ];
+    
+    if (allowedTypes.includes(file.type)) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      setContentError("Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4.");
     }
   };
 
   const handleRemoveImage = () => {
     setImagePreview(null);
+    setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -104,7 +124,7 @@ export function CreatePostButton({
     setContentError(validationError);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedContent = content.trim();
     const validationError = ValidatePostContent(trimmedContent);
 
@@ -113,14 +133,38 @@ export function CreatePostButton({
       return;
     }
 
-    if (onCreatePost) {
-      onCreatePost(trimmedContent, imagePreview || undefined);
-    }
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-    setContent("");
-    setContentError(null);
-    setImagePreview(null);
-    setOpen(false);
+    try {
+      const result = await createPost(communityId, {
+        caption: trimmedContent,
+        media: selectedFile || undefined,
+      });
+
+      if (!result.success) {
+        setSubmitError(result.message || "Failed to create post");
+        return;
+      }
+
+      // Call the callback with the created post
+      if (onCreatePost && result.data) {
+        onCreatePost(result.data);
+      }
+
+      // Reset form
+      setContent("");
+      setContentError(null);
+      setImagePreview(null);
+      setSelectedFile(null);
+      setSubmitError(null);
+      setOpen(false);
+    } catch (error) {
+      setSubmitError("An unexpected error occurred. Please try again.");
+      console.error("Error creating post:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isPostContentValid =
@@ -225,7 +269,7 @@ export function CreatePostButton({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="image-upload"
@@ -240,14 +284,35 @@ export function CreatePostButton({
                 </Button>
               </div>
             )}
+
+            {/* Error Message */}
+            {submitError && (
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {submitError}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={!isPostContentValid}>
-              Post
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!isPostContentValid || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Posting...
+                </>
+              ) : (
+                "Post"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

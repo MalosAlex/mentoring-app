@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Heart, MessageCircle, ImagePlus } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { mockCommunities, getPostsByCommunity, formatTimestamp, type Post } from "@/lib/mock-data";
+import { mockCommunities, formatTimestamp, type Post } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { CreatePostButton } from "@/components/create-post-button";
 import { usePosts } from "@/contexts/posts-context";
+import { getPosts, type PostResponse } from "@/lib/posts-service";
 
 export default function CommunityFeedPage() {
   const params = useParams();
@@ -19,8 +20,79 @@ export default function CommunityFeedPage() {
   const { addPost } = usePosts();
   
   const community = mockCommunities.find(c => c.id === communityId);
-  const [posts, setPosts] = useState<Post[]>(getPostsByCommunity(communityId));
-  const [isLoading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Convert backend PostResponse to frontend Post type
+  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
+    // Construct full URL for images (backend serves static files)
+    const imageUrl = postResponse.mediaUrl 
+      ? `http://localhost:5216${postResponse.mediaUrl}` 
+      : undefined;
+    
+    return {
+      id: postResponse.id.toString(),
+      communityId: postResponse.communityId.toString(),
+      author: {
+        name: postResponse.authorName,
+      },
+      content: postResponse.caption,
+      image: imageUrl,
+      timestamp: new Date(postResponse.createdAt),
+      likes: postResponse.reactionCount,
+      isLiked: false, // TODO: Get from backend if available
+      comments: postResponse.comments.length,
+    };
+  };
+
+  // Fetch posts from API
+  useEffect(() => {
+    const fetchPosts = async () => {
+      if (!communityId) return;
+      
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const numericCommunityId = parseInt(communityId, 10);
+        if (isNaN(numericCommunityId)) {
+          setError("Invalid community ID");
+          setIsLoading(false);
+          return;
+        }
+
+        const result = await getPosts(numericCommunityId, 1, 20);
+        
+        if (!result.success) {
+          // Check if it's an authentication error
+          if (result.message?.includes("logged in") || result.message?.includes("session has expired")) {
+            setError(result.message + " Redirecting to login...");
+            // Redirect to login after a short delay
+            setTimeout(() => {
+              window.location.href = "/auth/login";
+            }, 2000);
+          } else {
+            setError(result.message || "Failed to load posts");
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        if (result.data) {
+          const mappedPosts = result.data.posts.map(mapPostResponseToPost);
+          setPosts(mappedPosts);
+        }
+      } catch (err) {
+        setError("An unexpected error occurred");
+        console.error("Error fetching posts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [communityId]);
 
   const handleToggleLike = (postId: string) => {
     setPosts(posts.map(post => 
@@ -34,21 +106,8 @@ export default function CommunityFeedPage() {
     ));
   };
 
-  const handleCreatePost = (content: string, image?: string) => {
-    const newPost: Post = {
-      id: `post-${Date.now()}`,
-      communityId: communityId,
-      author: {
-        name: "John Doe",
-      },
-      content,
-      image,
-      timestamp: new Date(),
-      likes: 0,
-      isLiked: false,
-      comments: 0,
-    };
-
+  const handleCreatePost = (postResponse: PostResponse) => {
+    const newPost = mapPostResponseToPost(postResponse);
     setPosts([newPost, ...posts]);
     addPost(newPost); // Add to global user posts
   };
@@ -71,22 +130,40 @@ export default function CommunityFeedPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading posts...</p>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading posts...</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="text-center py-16">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const numericCommunityId = parseInt(communityId, 10);
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Create Post Button */}
-      <CreatePostButton 
-        communityName={community.name}
-        onCreatePost={handleCreatePost}
-      />
+      {!isNaN(numericCommunityId) && (
+        <CreatePostButton 
+          communityId={numericCommunityId}
+          communityName={community.name}
+          onCreatePost={handleCreatePost}
+        />
+      )}
 
       {/* Header */}
       <div className="mb-6">
@@ -145,6 +222,7 @@ export default function CommunityFeedPage() {
                       alt="Post image"
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                   </div>
                 )}
