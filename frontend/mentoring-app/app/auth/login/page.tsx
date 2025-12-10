@@ -2,15 +2,15 @@
 
 /**
  * Login Page Component
- * 
+ *
  * This page provides a user authentication form with validation for:
  * - Email or Username (required, valid email format or username)
  * - Password (required)
- * 
+ *
  * On successful login, stores authentication token in localStorage and
  * redirects to the home page. Displays error messages for invalid credentials.
  * Uses shadcn/ui components for consistent styling.
- * 
+ *
  * @module app/auth/login/page
  */
 
@@ -37,11 +37,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { login } from "@/lib/auth-service";
+import { useAuth } from "@/contexts/auth-context";
 
 /**
  * Zod validation schema for login form
- * 
+ *
  * Validates email/username format and ensures password is provided.
  * Accepts either a valid email address or a username (alphanumeric + underscores).
  */
@@ -67,14 +67,15 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 /**
  * LoginPage Component
- * 
+ *
  * Main component for user authentication. Handles form state, validation,
  * submission, and error handling.
- * 
+ *
  * @returns {JSX.Element} The login page UI
  */
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -89,11 +90,11 @@ export default function LoginPage() {
 
   /**
    * Handles form submission
-   * 
+   *
    * Calls the mockLogin function with form values, handles success/error responses,
    * and redirects to home page on successful authentication. Token is automatically
    * stored in localStorage by the mockLogin function.
-   * 
+   *
    * @param {LoginFormValues} values - Form values from react-hook-form
    */
   const onSubmit = async (values: LoginFormValues) => {
@@ -108,7 +109,9 @@ export default function LoginPage() {
         // Redirect to home page (or dashboard when it will be available)
         router.push("/");
       } else {
-        setSubmitError(response.message || "Invalid email/username or password");
+        setSubmitError(
+          response.message || "Invalid email/username or password"
+        );
       }
     } catch (error) {
       setSubmitError("An unexpected error occurred. Please try again.");
@@ -174,11 +177,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
             </form>
@@ -198,4 +197,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

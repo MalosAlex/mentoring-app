@@ -22,7 +22,7 @@ type LogoutResult = {
   message?: string;
 };
 
-const API_BASE_URL = (
+export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/$/, "");
 
@@ -35,7 +35,7 @@ const apiRoutes = {
 const getContentType = (response: Response) =>
   response.headers.get("content-type") ?? "";
 
-const parseErrorMessage = async (response: Response): Promise<string> => {
+export const parseErrorMessage = async (response: Response): Promise<string> => {
   const fallback = "Something went wrong. Please try again.";
   const contentType = getContentType(response);
 
@@ -85,6 +85,28 @@ const decodeJwtExpiry = (token: string): string | undefined => {
     return new Date(decoded.exp * 1000).toISOString();
   } catch {
     return undefined;
+  }
+};
+
+export type User = {
+  id: string;
+  email: string;
+  fullName: string;
+}
+
+export const getUserFromToken = (token: string): User | null => {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const decoded = JSON.parse(atob(payload));
+    return {
+      id: decoded.sub || "",
+      email: decoded.email || "",
+      fullName: decoded.fullName || "",
+    };
+  } catch {
+    return null;
   }
 };
 
