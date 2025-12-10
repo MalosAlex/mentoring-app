@@ -400,3 +400,17 @@ For questions about the frontend implementation, contact Victor.
 **Last Updated:** November 20, 2024  
 **Status:** ✅ Complete - Ready for Backend Integration
 
+---
+### UPDATE 2025-12-10 — Costin
+
+Refactored frontend codebase for cleanliness and code quality:
+
+- Fixed linter error by properly escaping apostrophes in login page (`Don't` → `Don&apos;t`)
+- Removed an unused `console.log` statement from `auth-service.ts`
+- Audited and confirmed all custom hooks (`use-mobile`, `use-logout`) and module imports are actively used
+- Reviewed all functions in `lib` files, confirming no unused exports remain
+- Ran linter: build passes with no errors or warnings
+
+**Result:**  
+Codebase is free of dead code, all imports/hooks/functions are in use, and linter reports a clean state.
+---
