@@ -411,6 +411,31 @@ Refactored frontend codebase for cleanliness and code quality:
 - Reviewed all functions in `lib` files, confirming no unused exports remain
 - Ran linter: build passes with no errors or warnings
 
+**Added Unit Tests for Authentication Features:**
+
+| Test File | Coverage |
+|-----------|----------|
+| `app/auth/login/__tests__/page.test.tsx` | 100% |
+| `app/auth/signup/__tests__/page.test.tsx` | 100% |
+| `app/auth/logout/__tests__/page.test.tsx` | 100% |
+| `hooks/__tests__/use-logout.test.ts` | 100% |
+| `lib/__tests__/auth-service.test.ts` | 92% |
+
+**Tests cover:**
+- Rendering of all form fields and UI elements
+- Form validation (email, password, username, full name)
+- API handlers (login, signup, logout, token management)
+- Error states (invalid credentials, network errors, validation errors)
+
+**Run tests:**
+```bash
+cd frontend/mentoring-app
+npm test                              # Run all tests
+npm test -- --coverage                # Run with coverage report
+npm test -- --testPathPatterns="auth" # Run only auth tests
+```
+
 **Result:**  
-Codebase is free of dead code, all imports/hooks/functions are in use, and linter reports a clean state.
+88 tests passing. Codebase is free of dead code, all imports/hooks/functions are in use, and linter reports a clean state.
+
 ---

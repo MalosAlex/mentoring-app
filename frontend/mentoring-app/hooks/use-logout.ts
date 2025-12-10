@@ -48,8 +48,14 @@ export function useLogout() {
    */
   const logout = useCallback(
     async (redirectTo: string = "/auth/login") => {
-      await contextLogout();
-      router.push(redirectTo);
+      try {
+        await contextLogout();
+      } catch (error) {
+        // Swallow errors to allow redirect even if logout fails
+        console.error("Logout error:", error);
+      } finally {
+        router.push(redirectTo);
+      }
     },
     [router, contextLogout]
   );
