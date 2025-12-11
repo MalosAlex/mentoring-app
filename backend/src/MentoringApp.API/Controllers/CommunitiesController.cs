@@ -37,7 +37,7 @@ public class CommunitiesController : Controller
     }
 
     [HttpPost]
-    //[Authorize]
+    [Authorize]
     public async Task<IActionResult> Add([FromBody] AddCommunityRequest request)
     {
         _logger.LogInformation("Adding Community.");
