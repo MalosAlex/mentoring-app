@@ -37,12 +37,24 @@ public class CommunitiesController : Controller
     }
 
     [HttpPost]
-    [Authorize]
+    //[Authorize]
     public async Task<IActionResult> Add([FromBody] AddCommunityRequest request)
     {
         _logger.LogInformation("Adding Community.");
 
-        await _communityService.AddAsync(request);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _communityService.AddAsync(request);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         return Created();
     }
