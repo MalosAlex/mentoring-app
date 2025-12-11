@@ -32,14 +32,23 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         try
-        {
-            await _userService.RegisterUserAsync(request);
-            return Created();
-        }
-        catch(Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+    {
+        await _userService.RegisterUserAsync(request);
+        return Created(); 
+    }
+    catch (ArgumentException ex) 
+    {
+        return BadRequest(ex.Message); 
+    }
+    catch (InvalidOperationException ex) 
+    {
+        return Conflict(ex.Message); 
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Registration failed");
+        return StatusCode(500, "An internal error occurred");
+    }
     }
 
     [HttpPost("login")]
