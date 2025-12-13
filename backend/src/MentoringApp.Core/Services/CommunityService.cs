@@ -1,6 +1,7 @@
 ﻿using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
 using MentoringApp.Persistance.Abstractions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace MentoringApp.Core.Services;
 
@@ -17,6 +18,11 @@ internal class CommunityService : ICommunityService
 
     public async Task AddAsync(AddCommunityRequest request)
     {
+        var filter = new ProfanityFilter.ProfanityFilter();
+
+        if (filter.ContainsProfanity(request.Name) || filter.ContainsProfanity(request.Description))
+            throw new ArgumentException("Profanity is forbidden.");
+
         await _communityRepository.AddAsync(request.Name, request.Description);
     }
 
