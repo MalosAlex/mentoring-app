@@ -1,4 +1,5 @@
-﻿using MentoringApp.Persistance.Abstractions;
+﻿using Azure.Core;
+using MentoringApp.Persistance.Abstractions;
 using MentoringApp.Persistance.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,9 @@ internal class CommunityRepository : ICommunityRepository
 
     public async Task AddAsync(string name, string description)
     {
+        if (await _context.Communities.AnyAsync(c => c.Name == name))
+            throw new ArgumentException("Community name must be unique.");
+
         await _context.Communities.AddAsync(new Community
         {
             Name = name,

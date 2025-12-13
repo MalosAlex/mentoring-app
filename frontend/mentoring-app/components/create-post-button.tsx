@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Image as ImageIcon, X } from "lucide-react";
+import { Plus, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -16,17 +16,45 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { createPost, type PostResponse } from "@/lib/posts-service";
 
 interface CreatePostButtonProps {
+  communityId: number;
   communityName: string;
-  onCreatePost?: (content: string, image?: string) => void;
+  onCreatePost?: (post: PostResponse) => void;
 }
 
-export function CreatePostButton({ communityName, onCreatePost }: CreatePostButtonProps) {
+// Backend validation: MaxLength(500) for Caption
+const postContentMaxLength = 500;
+
+function ValidatePostContent(content: string): string | null {
+  const trimmedContent = content.trim();
+  const contentLength = trimmedContent.length;
+
+  if (contentLength === 0) {
+    return "Post content cannot be empty.";
+  }
+
+  if (contentLength > postContentMaxLength) {
+    return `Post content cannot be longer than ${postContentMaxLength} characters.`;
+  }
+
+  return null;
+}
+
+export function CreatePostButton({
+  communityId,
+  communityName,
+  onCreatePost,
+}: CreatePostButtonProps) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
+  const [contentError, setContentError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -57,35 +85,90 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
   };
 
   const handleImageFile = (file: File) => {
-    if (file.type.startsWith("image/")) {
+    // Backend accepts: image/jpeg, image/png, image/gif, image/webp, video/mp4
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "video/mp4",
+    ];
+    
+    if (allowedTypes.includes(file.type)) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      setContentError("Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4.");
     }
   };
 
   const handleRemoveImage = () => {
     setImagePreview(null);
+    setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  const handleSubmit = () => {
-    if (!content.trim() && !imagePreview) return;
+  const handleContentChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const newValue = e.target.value;
+    const validationError = ValidatePostContent(newValue);
 
-    // Mock: In real app, this would upload to backend
-    if (onCreatePost) {
-      onCreatePost(content, imagePreview || undefined);
+    setContent(newValue);
+    setContentError(validationError);
+  };
+
+  const handleSubmit = async () => {
+    const trimmedContent = content.trim();
+    const validationError = ValidatePostContent(trimmedContent);
+
+    if (validationError !== null) {
+      setContentError(validationError);
+      return;
     }
 
-    // Reset form
-    setContent("");
-    setImagePreview(null);
-    setOpen(false);
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const result = await createPost(communityId, {
+        caption: trimmedContent,
+        media: selectedFile || undefined,
+      });
+
+      if (!result.success) {
+        setSubmitError(result.message || "Failed to create post");
+        return;
+      }
+
+      // Call the callback with the created post
+      if (onCreatePost && result.data) {
+        onCreatePost(result.data);
+      }
+
+      // Reset form
+      setContent("");
+      setContentError(null);
+      setImagePreview(null);
+      setSelectedFile(null);
+      setSubmitError(null);
+      setOpen(false);
+    } catch (error) {
+      setSubmitError("An unexpected error occurred. Please try again.");
+      console.error("Error creating post:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const isPostContentValid =
+    contentError === null && content.trim().length > 0;
 
   return (
     <>
@@ -116,7 +199,9 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">Posting to:</p>
+                  <p className="text-xs text-muted-foreground">
+                    Posting to:
+                  </p>
                 </div>
               </div>
               <Badge variant="secondary" className="gap-1">
@@ -125,12 +210,25 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
             </div>
 
             {/* Post Content */}
-            <Textarea
-              placeholder="What's on your mind?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none"
-            />
+            <div className="space-y-1">
+              <Textarea
+                placeholder="What's on your mind?"
+                value={content}
+                onChange={handleContentChange}
+                className="min-h-[120px] resize-none"
+                maxLength={postContentMaxLength}
+              />
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {content.length}/{postContentMaxLength} characters
+                </span>
+                {contentError && (
+                  <span className="text-destructive">
+                    {contentError}
+                  </span>
+                )}
+              </div>
+            </div>
 
             {/* Image Preview */}
             {imagePreview && (
@@ -171,7 +269,7 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="image-upload"
@@ -186,17 +284,35 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
                 </Button>
               </div>
             )}
+
+            {/* Error Message */}
+            {submitError && (
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {submitError}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!content.trim() && !imagePreview}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!isPostContentValid || isSubmitting}
             >
-              Post
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Posting...
+                </>
+              ) : (
+                "Post"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -204,4 +320,3 @@ export function CreatePostButton({ communityName, onCreatePost }: CreatePostButt
     </>
   );
 }
-

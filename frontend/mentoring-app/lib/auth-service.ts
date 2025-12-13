@@ -26,8 +26,6 @@ export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/$/, "");
 
-console.log(API_BASE_URL)
-
 const apiRoutes = {
   login: `${API_BASE_URL}/login`,
   register: `${API_BASE_URL}/register`,

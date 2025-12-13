@@ -42,7 +42,19 @@ public class CommunitiesController : Controller
     {
         _logger.LogInformation("Adding Community.");
 
-        await _communityService.AddAsync(request);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _communityService.AddAsync(request);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         return Created();
     }
