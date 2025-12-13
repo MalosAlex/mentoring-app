@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
+using MentoringApp.Core.Validation;
 using MentoringApp.Persistance.Abstractions;
 using MentoringApp.Persistance.Entities;
 using Microsoft.Extensions.Configuration;
@@ -70,10 +71,12 @@ internal class UserService : IUserService
         }
     public async Task RegisterUserAsync(RegisterRequest request)
     {
+        UserValidator.ValidateRegisterRequest(request);
+
         var existingUser = await _userRepository.GetUserByEmailAsync(request.Email)?? await _userRepository.GetUserByUsernameAsync(request.Username);
         if(existingUser != null)
         {
-            throw new Exception("User already exists");
+            throw new InvalidOperationException("User already exists");
         }
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
