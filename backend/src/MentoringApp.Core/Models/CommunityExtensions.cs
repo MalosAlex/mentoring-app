@@ -12,6 +12,7 @@ internal static class CommunityExtensions
             Name = entity.Name,
             Description = entity.Description,
             IsJoined = entity.Users.Any(u => u.Id == userId),
+            memberCount = entity.Users.Count()
         };
     }
 }
