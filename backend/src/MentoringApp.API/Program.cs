@@ -17,6 +17,17 @@ public partial class Program
 
         builder.Services.AddHealthChecks();
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
+
         var app = builder.Build();
 
         app.MapHealthChecks("/health");
@@ -35,6 +46,8 @@ public partial class Program
 
         app.UseAuthentication();
         app.UseMiddleware<TokenBlacklistMiddleware>();
+        app.UseRouting();
+
         app.UseAuthorization();
 
         app.MapControllers();

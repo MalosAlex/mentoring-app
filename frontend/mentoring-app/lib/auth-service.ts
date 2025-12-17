@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "http://localhost:5216/api";
+const DEFAULT_API_BASE_URL = "https://localhost:7117/api";
 const TOKEN_STORAGE_KEY = "mentoring_app_token";
 
 type StoredToken = {
