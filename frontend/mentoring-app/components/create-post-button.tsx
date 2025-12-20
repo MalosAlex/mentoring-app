@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { createPost, type PostResponse } from "@/lib/posts-service";
+import { useAuth } from "@/contexts/auth-context";
+import { getInitials } from "@/lib/helper";
 
 interface CreatePostButtonProps {
   communityId: number;
@@ -48,6 +50,7 @@ export function CreatePostButton({
   onCreatePost,
 }: CreatePostButtonProps) {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   const [content, setContent] = useState("");
   const [contentError, setContentError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -195,10 +198,10 @@ export function CreatePostButton({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{getInitials(user?.fullName || "")}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium">John Doe</p>
+                  <p className="text-sm font-medium">{user?.fullName}</p>
                   <p className="text-xs text-muted-foreground">
                     Posting to:
                   </p>

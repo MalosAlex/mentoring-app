@@ -5,7 +5,8 @@ import { Heart, MessageCircle, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { formatTimestamp, type Comment } from "@/lib/mock-data";
+import { type Comment } from "@/lib/types";
+import { formatTimestamp } from "@/lib/helper";
 
 interface CommentItemProps {
   comment: Comment;

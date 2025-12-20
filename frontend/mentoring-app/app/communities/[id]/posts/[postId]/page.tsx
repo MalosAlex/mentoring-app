@@ -11,7 +11,7 @@ import {
   getCommentsByPostId,
   formatTimestamp,
   type Comment 
-} from "@/lib/mock-data";
+} from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

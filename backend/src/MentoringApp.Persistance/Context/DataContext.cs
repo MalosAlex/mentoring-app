@@ -33,6 +33,7 @@ internal class DataContext : DbContext
             entity.Property(u => u.FullName).HasMaxLength(100);
             entity.Property(u => u.Username).HasMaxLength(50);
             entity.Property(u => u.Email).HasMaxLength(256);
+            
         });
 
         builder.Entity<Post>(entity =>

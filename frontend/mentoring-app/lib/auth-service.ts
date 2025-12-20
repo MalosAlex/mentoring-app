@@ -1,5 +1,6 @@
-const DEFAULT_API_BASE_URL = "https://localhost:7117/api";
+import { API_BASE_URL } from "./helper";
 const TOKEN_STORAGE_KEY = "mentoring_app_token";
+
 
 type StoredToken = {
   token: string;
@@ -21,10 +22,6 @@ type LogoutResult = {
   success: boolean;
   message?: string;
 };
-
-export const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
-).replace(/\/$/, "");
 
 const apiRoutes = {
   login: `${API_BASE_URL}/login`,
@@ -89,7 +86,7 @@ const decodeJwtExpiry = (token: string): string | undefined => {
 };
 
 export type User = {
-  id: string;
+  id: number;
   email: string;
   fullName: string;
 }
