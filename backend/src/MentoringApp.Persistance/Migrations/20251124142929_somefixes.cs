@@ -43,7 +43,7 @@ namespace MentoringApp.Persistance.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_PostComments_Users_UserId1",
                         column: x => x.UserId1,
@@ -83,7 +83,7 @@ namespace MentoringApp.Persistance.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_PostReactions_Users_UserId1",
                         column: x => x.UserId1,
