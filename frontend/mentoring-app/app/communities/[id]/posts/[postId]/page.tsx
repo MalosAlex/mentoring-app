@@ -1,16 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  mockCommunities, 
-  formatTimestamp,
-  type Comment,
-  type Post
-} from "@/lib/mock-data";
+import { useParams, useRouter } from "next/navigation";
 import { 
   getPostById as getPostByIdFromAPI,
   reactToPost,
@@ -24,11 +18,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentItem } from "@/components/comment-item";
+import { Community, Post, Comment } from "@/lib/types";
+import { formatTimestamp } from "@/lib/helper";
+import { getAllCommunities } from "@/lib/communities-service";
+import { useAuth } from "@/contexts/auth-context";
 
 // Convert API PostResponse to frontend Post type
 const mapPostResponseToPost = (postResponse: PostResponse, communityId: number): Post => {
   const imageUrl = postResponse.mediaUrl 
-    ? `http://localhost:5216${postResponse.mediaUrl}` 
+    ? `https://localhost:7117${postResponse.mediaUrl}` 
     : undefined;
   
   return {
@@ -63,10 +61,14 @@ const mapCommentResponseToComment = (commentResponse: PostCommentResponse): Comm
 
 export default function PostDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const communityId = params.id as string;
   const postId = params.postId as string;
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
-  const community = mockCommunities.find(c => c.id === communityId);
+  
+  const community = communities.find(c => c.id === communityId);
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLiked, setIsLiked] = useState(false);
@@ -76,6 +78,33 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isReacting, setIsReacting] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
+
+  useEffect(() => {
+      // Redirect to login if not authenticated
+      if (!authLoading && !isAuthenticated) {
+        router.push("/auth/login");
+        return;
+      }
+  
+      // Only fetch if authenticated
+      if (!isAuthenticated) {
+        return;
+      }
+  
+      const fetchCommunities = async () => {
+        try {
+          const data = await getAllCommunities();
+          setCommunities(data);
+        } catch (err) {
+          setError("Failed to load communities. Please try again later.");
+          console.error(err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      fetchCommunities();
+    }, [isAuthenticated, authLoading, router]);
 
   // Fetch post and comments from API
   useEffect(() => {
@@ -120,6 +149,7 @@ export default function PostDetailPage() {
 
     fetchPost();
   }, [communityId, postId]);
+  
 
   const handleToggleLike = async () => {
     if (!post || !communityId || !postId || isReacting) return;

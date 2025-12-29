@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { Community, type Post } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,6 +16,7 @@ import { getPosts, reactToPost, type PostResponse } from "@/lib/posts-service";
 import { getAllCommunities } from "@/lib/communities-service";
 import { useAuth } from "@/contexts/auth-context";
 import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
+import { Community, Post } from "@/lib/types";
 
 export default function CommunityFeedPage() {
   const router = useRouter();
