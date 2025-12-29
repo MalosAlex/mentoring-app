@@ -12,13 +12,14 @@ import { usePosts } from "@/contexts/posts-context";
 import { formatTimestamp } from "@/lib/helper";
 import { useAuth } from "@/contexts/auth-context";
 import { useEffect, useState } from "react";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { Community } from "@/lib/types";
 import { getAllCommunities } from "@/lib/communities-service";
 
 export default function MyPostsPage() {
   const { userPosts } = usePosts();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [communities, setCommunities] = useState<Community[]>([]);
 
   useEffect(() => {

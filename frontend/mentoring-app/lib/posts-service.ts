@@ -37,6 +37,14 @@ export interface GetPostsResponse {
   hasMore: boolean;
 }
 
+export interface PostReactionResponse {
+  postId: number;
+  userId: number;
+  reactionType: string;
+  createdAt: string;
+  totalReactions: number;
+}
+
 const parseErrorMessage = async (response: Response): Promise<string> => {
   const fallback = "Something went wrong. Please try again.";
   const contentType = response.headers.get("content-type") ?? "";
@@ -254,6 +262,9 @@ export const getPosts = async (
   }
 };
 
+/**
+ * Gets posts for a specific user
+ */
 export const getPostsForUser = async (
   userId: number,
   pageNumber: number = 1,
@@ -335,3 +346,194 @@ export const getPostsForUser = async (
   }
 };
 
+/**
+ * Reacts to a post (like/unlike)
+ */
+export const reactToPost = async (
+  communityId: number,
+  postId: number,
+  reactionType: string = "like"
+): Promise<{ success: boolean; data?: PostReactionResponse; message?: string }> => {
+  try {
+    const token = getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "You must be logged in to react to posts.",
+      };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/communities/${communityId}/posts/${postId}/react`,
+      {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ReactionType: reactionType }),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          success: false,
+          message: "Your session has expired. Please log in again.",
+        };
+      }
+      
+      return {
+        success: false,
+        message: await parseErrorMessage(response),
+      };
+    }
+
+    const data = await response.json();
+    
+    const reactionResponse: PostReactionResponse = {
+      postId: data.postId ?? data.PostId ?? postId,
+      userId: data.userId ?? data.UserId ?? 0,
+      reactionType: data.reactionType ?? data.ReactionType ?? reactionType,
+      createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
+      totalReactions: data.totalReactions ?? data.TotalReactions ?? 0,
+    };
+
+    return {
+      success: true,
+      data: reactionResponse,
+    };
+  } catch (error) {
+    console.error("Error reacting to post:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+    };
+  }
+};
+
+/**
+ * Comments on a post
+ */
+export const commentOnPost = async (
+  communityId: number,
+  postId: number,
+  content: string
+): Promise<{ success: boolean; data?: PostCommentResponse; message?: string }> => {
+  try {
+    const token = getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "You must be logged in to comment on posts.",
+      };
+    }
+
+    if (!content.trim()) {
+      return {
+        success: false,
+        message: "Comment content cannot be empty.",
+      };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/communities/${communityId}/posts/${postId}/comment`,
+      {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ Content: content.trim() }),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          success: false,
+          message: "Your session has expired. Please log in again.",
+        };
+      }
+      
+      return {
+        success: false,
+        message: await parseErrorMessage(response),
+      };
+    }
+
+    const data = await response.json();
+    
+    const comment: PostCommentResponse = {
+      id: data.id ?? data.Id ?? 0,
+      postId: data.postId ?? data.PostId ?? postId,
+      userId: data.userId ?? data.UserId ?? 0,
+      content: data.content ?? data.Content ?? content,
+      createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
+      authorName: data.authorName ?? data.AuthorName ?? "",
+    };
+
+    return {
+      success: true,
+      data: comment,
+    };
+  } catch (error) {
+    console.error("Error commenting on post:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+    };
+  }
+};
+
+/**
+ * Gets a single post by ID by fetching from the posts list
+ */
+export const getPostById = async (
+  communityId: number,
+  postId: number
+): Promise<{ success: boolean; data?: PostResponse; message?: string }> => {
+  try {
+    // Fetch posts and find the one we need
+    // We'll search through multiple pages if needed
+    let pageNumber = 1;
+    const pageSize = 50; // Use larger page size to reduce API calls
+    
+    while (pageNumber <= 10) { // Limit to 10 pages to avoid infinite loops
+      const result = await getPosts(communityId, pageNumber, pageSize);
+      
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch posts",
+        };
+      }
+      
+      const post = result.data.posts.find(p => p.id === postId);
+      if (post) {
+        return {
+          success: true,
+          data: post,
+        };
+      }
+      
+      // If we've reached the last page, stop searching
+      if (!result.data.hasMore) {
+        break;
+      }
+      
+      pageNumber++;
+    }
+    
+    return {
+      success: false,
+      message: "Post not found.",
+    };
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+    };
+  }
+};

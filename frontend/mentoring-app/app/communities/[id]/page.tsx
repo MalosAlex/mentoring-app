@@ -5,17 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { Community, type Post } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { CreatePostButton } from "@/components/create-post-button";
 import { usePosts } from "@/contexts/posts-context";
-import { getPosts, type PostResponse } from "@/lib/posts-service";
+
+import { getPosts, reactToPost, type PostResponse } from "@/lib/posts-service";
 import { getAllCommunities } from "@/lib/communities-service";
 import { useAuth } from "@/contexts/auth-context";
 import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
+import { Community, Post } from "@/lib/types";
 
 export default function CommunityFeedPage() {
   const router = useRouter();
@@ -105,16 +106,70 @@ export default function CommunityFeedPage() {
     fetchPosts();
   }, [communityId]);
 
-  const handleToggleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
+  const handleToggleLike = async (postId: string) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const numericCommunityId = parseInt(communityId, 10);
+    const numericPostId = parseInt(postId, 10);
+    
+    if (isNaN(numericCommunityId) || isNaN(numericPostId)) {
+      console.error("Invalid community or post ID");
+      return;
+    }
+
+    // Optimistically update UI
+    const wasLiked = post.isLiked;
+    setPosts(posts.map(p => 
+      p.id === postId 
         ? { 
-            ...post, 
-            isLiked: !post.isLiked,
-            likes: post.isLiked ? post.likes - 1 : post.likes + 1
+            ...p, 
+            isLiked: !p.isLiked,
+            likes: p.isLiked ? p.likes - 1 : p.likes + 1
           }
-        : post
+        : p
     ));
+
+    try {
+      const result = await reactToPost(numericCommunityId, numericPostId, "like");
+      
+      if (result.success && result.data) {
+        // Update with actual count from server
+        setPosts(posts.map(p => 
+          p.id === postId 
+            ? { 
+                ...p, 
+                isLiked: !wasLiked,
+                likes: result.data!.totalReactions
+              }
+            : p
+        ));
+      } else {
+        // Revert on error
+        setPosts(posts.map(p => 
+          p.id === postId 
+            ? { 
+                ...p, 
+                isLiked: wasLiked,
+                likes: post.likes
+              }
+            : p
+        ));
+        console.error("Failed to react to post:", result.message);
+      }
+    } catch (error) {
+      // Revert on error
+      setPosts(posts.map(p => 
+        p.id === postId 
+          ? { 
+              ...p, 
+              isLiked: wasLiked,
+              likes: post.likes
+            }
+          : p
+      ));
+      console.error("Error reacting to post:", error);
+    }
   };
 
   const handleCreatePost = (postResponse: PostResponse) => {
