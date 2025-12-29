@@ -1,50 +1,62 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { mockCommunities, formatTimestamp, type Post } from "@/lib/mock-data";
+import { Community, type Post } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { CreatePostButton } from "@/components/create-post-button";
 import { usePosts } from "@/contexts/posts-context";
+
 import { getPosts, reactToPost, type PostResponse } from "@/lib/posts-service";
+import { getAllCommunities } from "@/lib/communities-service";
+import { useAuth } from "@/contexts/auth-context";
+import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
 
 export default function CommunityFeedPage() {
+  const router = useRouter();
   const params = useParams();
   const communityId = params.id as string;
   const { addPost } = usePosts();
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
-  const community = mockCommunities.find(c => c.id === communityId);
+  const community = communities.find(c => c.id === communityId);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Convert backend PostResponse to frontend Post type
-  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
-    // Construct full URL for images (backend serves static files)
-    const imageUrl = postResponse.mediaUrl 
-      ? `http://localhost:5216${postResponse.mediaUrl}` 
-      : undefined;
-    
-    return {
-      id: postResponse.id.toString(),
-      communityId: postResponse.communityId.toString(),
-      author: {
-        name: postResponse.authorName,
-      },
-      content: postResponse.caption,
-      image: imageUrl,
-      timestamp: new Date(postResponse.createdAt),
-      likes: postResponse.reactionCount,
-      isLiked: false, // TODO: Get from backend if available
-      comments: postResponse.comments.length,
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!authLoading && !isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+
+    // Only fetch if authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const fetchCommunities = async () => {
+      try {
+        const data = await getAllCommunities();
+        setCommunities(data);
+      } catch (err) {
+        setError("Failed to load communities. Please try again later.");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
-  };
+
+    fetchCommunities();
+  }, [isAuthenticated, authLoading, router]);
 
   // Fetch posts from API
   useEffect(() => {

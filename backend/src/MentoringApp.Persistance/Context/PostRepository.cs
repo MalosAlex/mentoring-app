@@ -32,6 +32,18 @@ internal class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<List<Post>> GetByUserIdAsync(int userId, int skip, int take)
+    {
+        return await _context.Posts
+            .AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Include(p => p.User)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+    }
+
     public async Task<Post?> GetByIdAsync(int postId)
         => await _context.Posts.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == postId);
 

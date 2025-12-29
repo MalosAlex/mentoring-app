@@ -52,6 +52,16 @@ public class PostsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("~/api/users/{userId}/posts")]
+    public async Task<IActionResult> GetPostsByUser(int userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+    {
+        _logger.LogInformation("Fetching posts for user {UserId}", userId);
+
+        var response = await _postService.GetByUserAsync(userId, pageNumber, pageSize);
+
+        return Ok(response);
+    }
+
     [HttpPost]
     [RequestSizeLimit(104857600)] // 100 MB
     public async Task<IActionResult> Create(int communityId, [FromForm] CreatePostForm form)

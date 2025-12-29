@@ -9,10 +9,37 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { usePosts } from "@/contexts/posts-context";
-import { formatTimestamp, mockCommunities } from "@/lib/mock-data";
+import { formatTimestamp } from "@/lib/helper";
+import { useAuth } from "@/contexts/auth-context";
+import { useEffect, useState } from "react";
+import router from "next/router";
+import { Community } from "@/lib/types";
+import { getAllCommunities } from "@/lib/communities-service";
 
 export default function MyPostsPage() {
   const { userPosts } = usePosts();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [communities, setCommunities] = useState<Community[]>([]);
+
+  useEffect(() => {
+      // Redirect to login if not authenticated
+      if (!authLoading && !isAuthenticated) {
+        router.push("/auth/login");
+        return;
+      }
+  
+      // Only fetch if authenticated
+      if (!isAuthenticated) {
+        return;
+      }
+  
+      const fetchCommunities = async () => {
+        const data = await getAllCommunities();
+        setCommunities(data);
+      };
+  
+      fetchCommunities();
+    }, [isAuthenticated, authLoading, router]);
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -33,7 +60,7 @@ export default function MyPostsPage() {
       ) : (
         <div className="space-y-6">
           {userPosts.map((post) => {
-            const community = mockCommunities.find(c => c.id === post.communityId);
+            const community = communities.find(c => c.id === post.communityId);
             return (
               <Card key={post.id}>
                 <CardHeader>
@@ -66,6 +93,7 @@ export default function MyPostsPage() {
                         alt="Post image"
                         fill
                         className="object-cover"
+                        unoptimized
                       />
                     </div>
                   )}

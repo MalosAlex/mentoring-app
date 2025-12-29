@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, UserPlus, UserMinus } from "lucide-react";
 import Link from "next/link";
-import { type Community } from "@/lib/mock-data";
+import { type Community } from "@/lib/types";
 import {
   getAllCommunities,
   joinCommunity,
@@ -43,6 +43,7 @@ export default function CommunitiesPage() {
     const fetchCommunities = async () => {
       try {
         const data = await getAllCommunities();
+        console.log(data);
         setCommunities(data);
       } catch (err) {
         setError("Failed to load communities. Please try again later.");
@@ -165,7 +166,7 @@ export default function CommunitiesPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3">
                     <Users className="h-4 w-4" />
                     <span>
-                      {community.memberCount.toLocaleString()} members
+                      {community.memberCount.toLocaleString()} {community.memberCount == 1 ? "member" : "members"}
                     </span>
                   </div>
                 </div>

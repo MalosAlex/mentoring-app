@@ -91,6 +91,38 @@ internal class PostService : IPostService
         };
     }
 
+    public async Task<GetPostsResponse> GetByUserAsync(int userId, int pageNumber, int pageSize)
+    {
+        if (pageNumber < 1)
+        {
+            throw new ArgumentException("Page number must be at least 1.", nameof(pageNumber));
+        }
+
+        if (pageSize is < 1 or > 50)
+        {
+            throw new ArgumentException("Page size must be between 1 and 50.", nameof(pageSize));
+        }
+
+        _ = await _userRepository.GetUserByIdAsync(userId)
+            ?? throw new ArgumentException("Community not found", nameof(userId));
+
+        var skip = (pageNumber - 1) * pageSize;
+        var posts = await _postRepository.GetByUserIdAsync(userId, skip, pageSize + 1);
+
+        var hasMore = posts.Count > pageSize;
+        if (hasMore)
+        {
+            posts = posts.Take(pageSize).ToList();
+        }
+
+        return new GetPostsResponse
+        {
+            Posts = posts.Select(p => p.ToModel()).ToList(),
+            PageNumber = pageNumber,
+            HasMore = hasMore
+        };
+    }
+
     public async Task<PostReactionResponse> ReactAsync(int postId, int userId, string reactionType)
     {
         if (string.IsNullOrWhiteSpace(reactionType))
