@@ -51,6 +51,12 @@ internal class DataContext : DbContext
                 .WithMany(c => c.Posts)
                 .HasForeignKey(p => p.CommunityId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PostComment>()
+                .HasOne(c => c.User).WithMany(u => u.PostComments).HasForeignKey(c => c.UserId);
+
+            builder.Entity<PostReaction>()
+                .HasOne(r => r.User).WithMany(u => u.PostReactions).HasForeignKey(r => r.UserId);
         });
 
         builder.Entity<PostReaction>(entity =>
@@ -58,12 +64,14 @@ internal class DataContext : DbContext
             entity.Property(r => r.ReactionType).IsRequired().HasMaxLength(32);
             entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             entity.HasIndex(r => new { r.PostId, r.UserId }).IsUnique();
+
             entity.HasOne(r => r.Post)
-                  .WithMany()
+                  .WithMany(p => p.Reactions)    
                   .HasForeignKey(r => r.PostId)
                   .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasOne(r => r.User)
-                  .WithMany()
+                  .WithMany(u => u.PostReactions)
                   .HasForeignKey(r => r.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
@@ -72,12 +80,14 @@ internal class DataContext : DbContext
         {
             entity.Property(c => c.Content).IsRequired().HasMaxLength(1000);
             entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
             entity.HasOne(c => c.Post)
-                  .WithMany()
+                  .WithMany(p => p.Comments)    
                   .HasForeignKey(c => c.PostId)
                   .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasOne(c => c.User)
-                  .WithMany()
+                  .WithMany(u => u.PostComments)
                   .HasForeignKey(c => c.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
