@@ -439,3 +439,55 @@ npm test -- --testPathPatterns="auth" # Run only auth tests
 88 tests passing. Codebase is free of dead code, all imports/hooks/functions are in use, and linter reports a clean state.
 
 ---
+
+### UPDATE 2026-01-09 — Costin
+
+Implemented profile page enhancements and settings functionality:
+
+#### Bug Fixes
+- **Sidebar Long Email Fix**: Fixed issue where long emails would push the dropdown arrow out of view
+  - Added `min-w-0` to container to allow text truncation in flexbox
+  - Added `truncate` and `w-full` to name and email spans for ellipsis overflow
+  - Added `shrink-0` to ChevronUp icon to prevent it from being pushed out
+
+#### Profile Page Enhancements (`app/profile/page.tsx`)
+- Removed placeholder TODO items (creation date, role, joined date)
+- Added **Stats Cards** section displaying:
+  - Posts count
+  - Communities joined count
+  - Total reactions received
+  - Total comments count
+- Added **Activity Sections**:
+  - Communities Joined - shows up to 5 joined communities with member counts
+  - Recent Posts - shows up to 5 recent posts with relative timestamps and reaction counts
+- Data fetched from existing backend endpoints:
+  - `GET /api/users/{userId}/posts`
+  - `GET /api/Communities` (filtered by `isJoined`)
+
+#### Settings Page (`app/settings/page.tsx`)
+- Replaced placeholder settings with functional profile visibility controls
+- Added two toggle switches:
+  - **Show Stats Cards** - toggle visibility of the stats cards on profile
+  - **Show Activity Sections** - toggle visibility of communities joined and recent posts
+
+#### New Files Created
+| File | Description |
+|------|-------------|
+| `contexts/profile-settings-context.tsx` | Context for managing profile visibility settings with localStorage persistence |
+| `components/ui/switch.tsx` | Toggle switch UI component |
+
+#### Updated Files
+| File | Changes |
+|------|---------|
+| `app/layout.tsx` | Added `ProfileSettingsProvider` wrapper |
+| `app/profile/page.tsx` | Complete rewrite with stats, activity sections, and settings integration |
+| `app/settings/page.tsx` | Replaced placeholders with functional toggles |
+| `components/app-sidebar.tsx` | Fixed long email truncation issue |
+
+#### Technical Details
+- Profile settings persist to `localStorage` under key `profile_settings`
+- Settings default to `showStats: true` and `showActivity: true`
+- Profile page conditionally renders sections based on settings
+- All new code is fully commented for maintainability
+
+---
