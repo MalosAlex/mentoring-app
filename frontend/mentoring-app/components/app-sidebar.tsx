@@ -105,15 +105,15 @@ export function AppSidebar() {
                           .toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start flex-1 text-left">
-                      <span className="text-sm font-medium">
+                    <div className="flex flex-col items-start flex-1 min-w-0 text-left">
+                      <span className="text-sm font-medium truncate w-full">
                         {user?.fullName}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground truncate w-full">
                         {user?.email}
                       </span>
                     </div>
-                    <ChevronUp className="ml-auto h-4 w-4" />
+                    <ChevronUp className="h-4 w-4 shrink-0" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="end" className="w-56">
