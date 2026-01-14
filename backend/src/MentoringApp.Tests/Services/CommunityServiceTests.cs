@@ -62,7 +62,7 @@ namespace MentoringApp.Tests.Services
 
             _communityRepository.GetAsync().Returns(communities);
 
-            var result = await _communityService.GetAllAsync();
+            var result = await _communityService.GetAllAsync(0);
 
             Assert.That(result.Communities.First().Name, Is.EqualTo(communities.First().Name));
         }

@@ -91,6 +91,35 @@ internal class PostService : IPostService
         };
     }
 
+    public async Task<GetPostsResponse> GetByUserAsync(int userId, int pageNumber, int pageSize, int? currentUserId = null)
+    {
+        if (pageNumber < 1)
+        {
+            throw new ArgumentException("Page number must be at least 1.", nameof(pageNumber));
+        }
+
+        if (pageSize is < 1 or > 50)
+        {
+            throw new ArgumentException("Page size must be between 1 and 50.", nameof(pageSize));
+        }
+
+        var skip = (pageNumber - 1) * pageSize;
+        var posts = await _postRepository.GetByUserIdAsync(userId, skip, pageSize + 1);
+
+        var hasMore = posts.Count > pageSize;
+        if (hasMore)
+        {
+            posts = posts.Take(pageSize).ToList();
+        }
+
+        return new GetPostsResponse
+        {
+            Posts = posts.Select(p => p.ToModel(currentUserId)).ToList(),
+            PageNumber = pageNumber,
+            HasMore = hasMore
+        };
+    }
+
     public async Task<PostResponse> GetByIdAsync(int postId, int? currentUserId = null)
     {
         var post = await _postRepository.GetByIdAsync(postId) 
@@ -150,7 +179,7 @@ internal class PostService : IPostService
         };
     }
 
-    public async Task<PostReactionResponse> ReactToCommentAsync(int commentId, int userId, string reactionType)
+    public async Task<CommentReactionResponse> ReactToCommentAsync(int commentId, int userId, string reactionType)
     {
         if (string.IsNullOrWhiteSpace(reactionType))
             throw new ArgumentException("Reaction type required", nameof(reactionType));
@@ -181,14 +210,13 @@ internal class PostService : IPostService
 
         var total = await _postRepository.CountCommentReactionsAsync(commentId);
 
-        return new PostReactionResponse
+        return new CommentReactionResponse
         {
-            PostId = commentId, // Reusing PostReactionResponse for comment reactions
+            CommentId = commentId,
             UserId = userId,
             ReactionType = reactionType.Trim().ToLowerInvariant(),
             CreatedAt = DateTime.UtcNow,
-            TotalReactions = total,
-            IsLiked = isLikedNow
+            TotalReactions = total
         };
     }
 
@@ -225,4 +253,3 @@ internal class PostService : IPostService
         return comment.ToDto();
     }
 }
-

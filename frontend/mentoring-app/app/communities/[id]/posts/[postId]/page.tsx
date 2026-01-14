@@ -5,12 +5,8 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  formatTimestamp,
-  type Comment,
-  type Post,
-  type Community,
-} from "@/lib/mock-data";
+import { formatTimestamp } from "@/lib/helper";
+import { Comment, Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

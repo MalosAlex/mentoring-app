@@ -44,6 +44,8 @@ public partial class Program
 
         app.UseCors();
 
+        app.UseStaticFiles();
+
         app.UseAuthentication();
         app.UseMiddleware<TokenBlacklistMiddleware>();
         app.UseRouting();

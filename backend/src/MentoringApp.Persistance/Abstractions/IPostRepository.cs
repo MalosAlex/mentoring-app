@@ -6,6 +6,8 @@ public interface IPostRepository
 {
     Task AddAsync(Post post);
     Task<List<Post>> GetByCommunityIdAsync(int communityId, int skip, int take);
+    Task<List<Post>> GetByUserIdAsync(int userId, int skip, int take);
+
     Task<Post?> GetByIdAsync(int postId);
     Task<PostReaction?> GetReactionAsync(int postId, int userId);
     Task UpsertReactionAsync(PostReaction reaction);
@@ -17,5 +19,9 @@ public interface IPostRepository
     Task DeleteCommentReactionAsync(CommentReaction reaction);
     Task<int> CountCommentReactionsAsync(int commentId);
     Task<PostComment> AddCommentAsync(PostComment comment);
+    Task<PostComment?> GetCommentByIdAsync(int commentId);
+    Task<CommentReaction?> GetCommentReactionAsync(int commentId, int userId);
+    Task UpsertCommentReactionAsync(CommentReaction reaction);
+    Task<int> CountCommentReactionsAsync(int commentId);
 }
 

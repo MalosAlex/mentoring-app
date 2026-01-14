@@ -1,5 +1,6 @@
-import { API_BASE_URL, getStoredToken } from "./auth-service";
-import { Community } from "./mock-data";
+import { getStoredToken } from "./auth-service";
+import { API_BASE_URL } from "./helper";
+import { Community } from "./types";
 
 type CommunityResponse = {
   id: number;
@@ -33,7 +34,11 @@ export async function getAllCommunities(): Promise<Community[]> {
     name: item.name,
     description: item.description,
     memberCount: item.memberCount ?? 0,
+<<<<<<< HEAD
     isJoined: item.isJoined ?? false,
+=======
+    isJoined: item.isJoined,
+>>>>>>> 332fe0e12a6387e03a63ed61e823d547f8d07c83
   }));
 }
 

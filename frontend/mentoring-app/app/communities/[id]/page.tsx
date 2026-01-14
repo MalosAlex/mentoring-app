@@ -2,17 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Heart,
-  MessageCircle,
-  ImagePlus,
-  Loader2,
-  Plus,
-} from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatTimestamp, type Post, type Community } from "@/lib/mock-data";
+import { formatTimestamp } from "@/lib/helper";
+import { Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,7 +20,7 @@ export default function CommunityFeedPage() {
   const params = useParams();
   const communityId = params.id as string;
   const { addPost } = usePosts();
-
+  
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,14 +30,14 @@ export default function CommunityFeedPage() {
   // Convert backend PostResponse to frontend Post type
   const mapPostResponseToPost = (postResponse: PostResponse): Post => {
     // Construct full URL for images (backend serves static files)
-    const imageUrl = postResponse.mediaUrl
-      ? `http://localhost:5216${postResponse.mediaUrl}`
+    const imageUrl = postResponse.mediaUrl 
+      ? `http://localhost:5216${postResponse.mediaUrl}` 
       : undefined;
-
-    const timestamp =
-      typeof postResponse.createdAt === "string"
-        ? new Date(postResponse.createdAt)
-        : new Date(postResponse.createdAt);
+    
+    // Ensure the date is parsed correctly from UTC string
+    const timestamp = typeof postResponse.createdAt === 'string' 
+      ? new Date(postResponse.createdAt) 
+      : new Date(postResponse.createdAt);
 
     return {
       id: postResponse.id.toString(),
@@ -64,7 +58,7 @@ export default function CommunityFeedPage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!communityId) return;
-
+      
       setIsLoading(true);
       setError(null);
 
@@ -83,13 +77,10 @@ export default function CommunityFeedPage() {
         }
 
         const result = await getPosts(numericCommunityId, 1, 20);
-
+        
         if (!result.success) {
           // Check if it's an authentication error
-          if (
-            result.message?.includes("logged in") ||
-            result.message?.includes("session has expired")
-          ) {
+          if (result.message?.includes("logged in") || result.message?.includes("session has expired")) {
             setError(result.message + " Redirecting to login...");
             // Redirect to login after a short delay
             setTimeout(() => {
@@ -118,59 +109,49 @@ export default function CommunityFeedPage() {
   }, [communityId]);
 
   const handleToggleLike = async (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
+    const post = posts.find(p => p.id === postId);
     if (!post || !communityId) return;
 
     const numericCommunityId = parseInt(communityId, 10);
     const numericPostId = parseInt(postId, 10);
-
+    
     // Optimistically update
     const wasLiked = post.isLiked;
-    setPosts(
-      posts.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              isLiked: !wasLiked,
-              likes: wasLiked ? p.likes - 1 : p.likes + 1,
-            }
-          : p
-      )
-    );
+    setPosts(posts.map(p => 
+      p.id === postId 
+        ? { 
+            ...p, 
+            isLiked: !wasLiked,
+            likes: wasLiked ? p.likes - 1 : p.likes + 1
+          }
+        : p
+    ));
 
     try {
-      const result = await reactToPost(
-        numericCommunityId,
-        numericPostId,
-        "like"
-      );
+      const result = await reactToPost(numericCommunityId, numericPostId, "like");
       if (result.success && result.data) {
         // Update with actual count and liked state from server
-        setPosts(
-          posts.map((p) =>
-            p.id === postId
-              ? {
-                  ...p,
-                  likes: result.data!.totalReactions,
-                  isLiked: result.data!.isLiked,
-                }
-              : p
-          )
-        );
+        setPosts(posts.map(p => 
+          p.id === postId 
+            ? { 
+                ...p, 
+                likes: result.data!.totalReactions,
+                isLiked: result.data!.isLiked
+              }
+            : p
+        ));
       }
     } catch (err) {
       // Revert on error
-      setPosts(
-        posts.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                isLiked: wasLiked,
-                likes: wasLiked ? p.likes + 1 : p.likes - 1,
-              }
-            : p
-        )
-      );
+      setPosts(posts.map(p => 
+        p.id === postId 
+          ? { 
+              ...p, 
+              isLiked: wasLiked,
+              likes: wasLiked ? p.likes + 1 : p.likes - 1
+            }
+          : p
+      ));
     }
   };
 
@@ -179,7 +160,7 @@ export default function CommunityFeedPage() {
     setIsJoining(true);
     try {
       await joinCommunity(communityId);
-      setCommunity((prev) => (prev ? { ...prev, isJoined: true } : null));
+      setCommunity(prev => prev ? { ...prev, isJoined: true } : null);
     } catch (err) {
       console.error("Failed to join:", err);
     } finally {
@@ -239,7 +220,7 @@ export default function CommunityFeedPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Create Post Button - Only show if joined */}
       {!isNaN(numericCommunityId) && community?.isJoined && (
-        <CreatePostButton
+        <CreatePostButton 
           communityId={numericCommunityId}
           communityName={community.name}
           onCreatePost={handleCreatePost}
@@ -255,7 +236,7 @@ export default function CommunityFeedPage() {
               Back to Communities
             </Button>
           </Link>
-
+          
           {!community?.isJoined && (
             <Button onClick={handleJoinCommunity} disabled={isJoining}>
               {isJoining ? (
@@ -277,14 +258,13 @@ export default function CommunityFeedPage() {
       {!community?.isJoined && (
         <div className="bg-muted/50 border rounded-lg p-4 mb-6 text-center">
           <p className="text-sm text-muted-foreground">
-            You are viewing this community as a guest.
-            <button
+            You are viewing this community as a guest. 
+            <button 
               onClick={handleJoinCommunity}
               className="text-primary font-semibold ml-1 hover:underline"
             >
               Join now
-            </button>{" "}
-            to share your thoughts!
+            </button> to share your thoughts!
           </p>
         </div>
       )}
@@ -311,10 +291,7 @@ export default function CommunityFeedPage() {
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarFallback>
-                      {post.author.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {post.author.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -326,10 +303,8 @@ export default function CommunityFeedPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-base mb-4 whitespace-pre-wrap">
-                  {post.content}
-                </p>
-
+                <p className="text-base mb-4 whitespace-pre-wrap">{post.content}</p>
+                
                 {post.image && (
                   <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
                     <Image
@@ -345,39 +320,35 @@ export default function CommunityFeedPage() {
                 <Separator className="my-4" />
 
                 <div className="flex items-center gap-6">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     className="gap-2 cursor-pointer"
                     onClick={() => handleToggleLike(post.id)}
                     disabled={!community?.isJoined}
                   >
-                    <Heart
-                      className={`h-4 w-4 ${
-                        post.isLiked ? "text-red-500" : ""
-                      }`}
+                    <Heart 
+                      className={`h-4 w-4 ${post.isLiked ? 'text-red-500' : ''}`} 
                       fill={post.isLiked ? "currentColor" : "none"}
                     />
                     <span>{post.likes}</span>
                   </Button>
                   {community?.isJoined ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
                       className="gap-2 cursor-pointer"
                       asChild
                     >
-                      <Link
-                        href={`/communities/${communityId}/posts/${post.id}`}
-                      >
+                      <Link href={`/communities/${communityId}/posts/${post.id}`}>
                         <MessageCircle className="h-4 w-4" />
                         <span>{post.comments}</span>
                       </Link>
                     </Button>
                   ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
                       className="gap-2 cursor-default"
                       disabled
                     >

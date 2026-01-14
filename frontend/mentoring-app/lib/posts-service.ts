@@ -1,9 +1,5 @@
 import { getStoredToken } from "./auth-service";
-
-const DEFAULT_API_BASE_URL = "http://localhost:5216/api";
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
-).replace(/\/$/, "");
+import { API_BASE_URL } from "./helper";
 
 export interface CreatePostRequest {
   caption: string;
@@ -253,6 +249,91 @@ export const getPosts = async (
         id: p.id ?? p.Id ?? 0,
         communityId: p.communityId ?? p.CommunityId ?? communityId,
         userId: p.userId ?? p.UserId ?? 0,
+        caption: p.caption ?? p.Caption ?? "",
+        mediaUrl: p.mediaUrl ?? p.MediaUrl ?? undefined,
+        createdAt: p.createdAt ?? p.CreatedAt ?? new Date().toISOString(),
+        authorName: p.authorName ?? p.AuthorName ?? "",
+        reactionCount: p.reactionCount ?? p.ReactionCount ?? 0,
+        isLiked: p.isLiked ?? p.IsLiked ?? false,
+        comments: (p.comments ?? p.Comments ?? []).map(mapCommentResponse),
+      })),
+      pageNumber: data.pageNumber ?? data.PageNumber ?? pageNumber,
+      hasMore: data.hasMore ?? data.HasMore ?? false,
+    };
+
+    return {
+      success: true,
+      data: postsResponse,
+    };
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
+    };
+  }
+};
+
+/**
+ * Gets posts for a specific user
+ */
+export const getPostsForUser = async (
+  userId: number,
+  pageNumber: number = 1,
+  pageSize: number = 20
+): Promise<{ success: boolean; data?: GetPostsResponse; message?: string }> => {
+  try {
+    const token = getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        message:
+          "You must be logged in to view posts. Please log in and try again.",
+      };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/users/${userId}/posts?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      {
+        method: "GET",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      // Handle 401 Unauthorized specifically
+      if (response.status === 401) {
+        return {
+          success: false,
+          message: "Your session has expired. Please log in again.",
+        };
+      }
+
+      const errorMessage = await parseErrorMessage(response);
+      console.error(
+        `Failed to fetch posts: ${response.status} ${response.statusText}`,
+        errorMessage
+      );
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+
+    const data = await response.json();
+
+    // Handle both camelCase and PascalCase responses
+    const postsResponse: GetPostsResponse = {
+      posts: (data.posts ?? data.Posts ?? []).map((p: any) => ({
+        id: p.id ?? p.Id ?? 0,
+        communityId: p.communityId ?? p.CommunityId ?? 0,
+        userId: p.userId ?? p.UserId ?? userId,
         caption: p.caption ?? p.Caption ?? "",
         mediaUrl: p.mediaUrl ?? p.MediaUrl ?? undefined,
         createdAt: p.createdAt ?? p.CreatedAt ?? new Date().toISOString(),

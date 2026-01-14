@@ -51,6 +51,37 @@ internal class PostRepository : IPostRepository
         return posts;
     }
 
+    public async Task<List<Post>> GetByUserIdAsync(int userId, int skip, int take)
+    {
+        var posts = await _context.Posts
+            .AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Include(p => p.User)
+            .Include(p => p.Reactions)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+
+        if (posts.Any())
+        {
+            var postIds = posts.Select(p => p.Id).ToList();
+            var comments = await _context.PostComments
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .Include(c => c.User)
+                .Include(c => c.Reactions)
+                .ToListAsync();
+
+            foreach (var post in posts)
+            {
+                post.Comments = comments.Where(c => c.PostId == post.Id).ToList();
+            }
+        }
+
+        return posts;
+    }
+
     public async Task<Post?> GetByIdAsync(int postId)
     {
         var post = await _context.Posts
