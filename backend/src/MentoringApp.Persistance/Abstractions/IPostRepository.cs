@@ -13,5 +13,9 @@ public interface IPostRepository
     Task UpsertReactionAsync(PostReaction reaction);
     Task<int> CountReactionsAsync(int postId);
     Task<PostComment> AddCommentAsync(PostComment comment);
+    Task<PostComment?> GetCommentByIdAsync(int commentId);
+    Task<CommentReaction?> GetCommentReactionAsync(int commentId, int userId);
+    Task UpsertCommentReactionAsync(CommentReaction reaction);
+    Task<int> CountCommentReactionsAsync(int commentId);
 }
 

@@ -56,10 +56,10 @@ internal class PostService : IPostService
         await _postRepository.AddAsync(post);
         post.User = user;
 
-        return post.ToModel();
+        return post.ToModel(request.UserId);
     }
 
-    public async Task<GetPostsResponse> GetByCommunityAsync(int communityId, int pageNumber, int pageSize)
+    public async Task<GetPostsResponse> GetByCommunityAsync(int communityId, int pageNumber, int pageSize, int? currentUserId = null)
     {
         if (pageNumber < 1)
         {
@@ -85,13 +85,13 @@ internal class PostService : IPostService
 
         return new GetPostsResponse
         {
-            Posts = posts.Select(p => p.ToModel()).ToList(),
+            Posts = posts.Select(p => p.ToModel(currentUserId)).ToList(),
             PageNumber = pageNumber,
             HasMore = hasMore
         };
     }
 
-    public async Task<GetPostsResponse> GetByUserAsync(int userId, int pageNumber, int pageSize)
+    public async Task<GetPostsResponse> GetByUserAsync(int userId, int pageNumber, int pageSize, int? currentUserId = null)
     {
         if (pageNumber < 1)
         {
@@ -117,7 +117,7 @@ internal class PostService : IPostService
 
         return new GetPostsResponse
         {
-            Posts = posts.Select(p => p.ToModel()).ToList(),
+            Posts = posts.Select(p => p.ToModel(currentUserId)).ToList(),
             PageNumber = pageNumber,
             HasMore = hasMore
         };
@@ -180,7 +180,40 @@ internal class PostService : IPostService
             UserId = userId,
             Content = comment.Content,
             CreatedAt = comment.CreatedAt,
-            AuthorName = user.FullName ?? user.Username
+            AuthorName = user.FullName ?? user.Username,
+            ReactionCount = 0,
+            IsLiked = false
+        };
+    }
+
+    public async Task<CommentReactionResponse> ReactToCommentAsync(int commentId, int userId, string reactionType)
+    {
+        if (string.IsNullOrWhiteSpace(reactionType))
+            throw new ArgumentException("Reaction type required", nameof(reactionType));
+
+        var comment = await _postRepository.GetCommentByIdAsync(commentId) 
+            ?? throw new ArgumentException("Comment not found", nameof(commentId));
+        var user = await _userRepository.GetUserByIdAsync(userId) 
+            ?? throw new ArgumentException("User not found", nameof(userId));
+
+        var reaction = new CommentReaction
+        {
+            CommentId = commentId,
+            UserId = userId,
+            ReactionType = reactionType.Trim().ToLowerInvariant(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _postRepository.UpsertCommentReactionAsync(reaction);
+        var total = await _postRepository.CountCommentReactionsAsync(commentId);
+
+        return new CommentReactionResponse
+        {
+            CommentId = commentId,
+            UserId = userId,
+            ReactionType = reaction.ReactionType,
+            CreatedAt = reaction.CreatedAt,
+            TotalReactions = total
         };
     }
 }
