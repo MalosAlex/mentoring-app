@@ -47,7 +47,7 @@ internal class CommunityService : ICommunityService
         if (community.Users.Any(u => u.Id == userId)) return;
 
         community.Users.Add(user);
-        await _communityRepository.UpdateAsync(community);
+        await _communityRepository.SaveChangesAsync();
     }
 
     public async Task Leave(int communityId, int userId)
@@ -59,6 +59,6 @@ internal class CommunityService : ICommunityService
         if (user == null) return;
 
         community.Users.Remove(user);
-        await _communityRepository.UpdateAsync(community);
+        await _communityRepository.SaveChangesAsync();
     }
 }

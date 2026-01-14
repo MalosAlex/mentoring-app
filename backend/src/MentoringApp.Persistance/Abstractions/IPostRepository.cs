@@ -19,9 +19,4 @@ public interface IPostRepository
     Task DeleteCommentReactionAsync(CommentReaction reaction);
     Task<int> CountCommentReactionsAsync(int commentId);
     Task<PostComment> AddCommentAsync(PostComment comment);
-    Task<PostComment?> GetCommentByIdAsync(int commentId);
-    Task<CommentReaction?> GetCommentReactionAsync(int commentId, int userId);
-    Task UpsertCommentReactionAsync(CommentReaction reaction);
-    Task<int> CountCommentReactionsAsync(int commentId);
 }
-
