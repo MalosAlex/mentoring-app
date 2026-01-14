@@ -11,6 +11,7 @@ internal class DataContext : DbContext
     public DbSet<Post> Posts { get; set; }
     public DbSet<PostReaction> PostReactions { get; set; }
     public DbSet<PostComment> PostComments { get; set; }
+    public DbSet<CommentReaction> CommentReactions { get; set; }
 
     private readonly IConfiguration _configuration;
     public DataContext(DbContextOptions options, IConfiguration configuration) : base(options)
@@ -90,6 +91,23 @@ internal class DataContext : DbContext
                   .WithMany(u => u.PostComments)
                   .HasForeignKey(c => c.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CommentReaction>(entity =>
+        {
+            entity.Property(r => r.ReactionType).IsRequired().HasMaxLength(32);
+            entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasIndex(r => new { r.CommentId, r.UserId }).IsUnique();
+
+            entity.HasOne(r => r.Comment)
+                  .WithMany(c => c.Reactions)
+                  .HasForeignKey(r => r.CommentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.User)
+                  .WithMany(u => u.CommentReactions)
+                  .HasForeignKey(r => r.UserId)
+                  .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

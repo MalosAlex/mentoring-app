@@ -10,4 +10,6 @@ public class PostCommentDto
     public string Content { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public string AuthorName { get; set; } = string.Empty;
+    public int ReactionCount { get; set; }
+    public bool IsLiked { get; set; }
 }
