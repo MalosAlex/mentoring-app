@@ -5,6 +5,8 @@ type CommunityResponse = {
   id: number;
   name: string;
   description: string;
+  isJoined: boolean;
+  memberCount: number;
 };
 
 export async function getAllCommunities(): Promise<Community[]> {
@@ -30,9 +32,16 @@ export async function getAllCommunities(): Promise<Community[]> {
     id: item.id.toString(),
     name: item.name,
     description: item.description,
-    memberCount: 0, // Not provided by backend
-    isJoined: false, // Not provided by backend
+    memberCount: item.memberCount ?? 0,
+    isJoined: item.isJoined ?? false,
   }));
+}
+
+export async function getCommunityById(
+  communityId: string
+): Promise<Community | undefined> {
+  const communities = await getAllCommunities();
+  return communities.find((c) => c.id === communityId);
 }
 
 export async function joinCommunity(communityId: string): Promise<void> {

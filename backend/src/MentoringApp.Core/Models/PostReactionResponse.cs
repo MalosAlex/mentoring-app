@@ -9,4 +9,5 @@ public class PostReactionResponse
     public string ReactionType { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int TotalReactions { get; set; }
+    public bool IsLiked { get; set; }
 }

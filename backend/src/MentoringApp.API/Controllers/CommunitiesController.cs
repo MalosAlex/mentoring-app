@@ -1,4 +1,4 @@
-﻿using MentoringApp.Core.Abstractions;
+using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +26,8 @@ public class CommunitiesController : Controller
     {
         _logger.LogInformation("Getting all Communities.");
 
-        var response = await _communityService.GetAllAsync();
+        int userId = GetUserIdFromToken();
+        var response = await _communityService.GetAllAsync(userId);
 
         if (response == null)
         {

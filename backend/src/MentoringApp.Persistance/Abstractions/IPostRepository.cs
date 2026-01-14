@@ -9,7 +9,13 @@ public interface IPostRepository
     Task<Post?> GetByIdAsync(int postId);
     Task<PostReaction?> GetReactionAsync(int postId, int userId);
     Task UpsertReactionAsync(PostReaction reaction);
+    Task DeleteReactionAsync(PostReaction reaction);
     Task<int> CountReactionsAsync(int postId);
+    Task<PostComment?> GetCommentByIdAsync(int commentId);
+    Task<CommentReaction?> GetCommentReactionAsync(int commentId, int userId);
+    Task UpsertCommentReactionAsync(CommentReaction reaction);
+    Task DeleteCommentReactionAsync(CommentReaction reaction);
+    Task<int> CountCommentReactionsAsync(int commentId);
     Task<PostComment> AddCommentAsync(PostComment comment);
 }
 

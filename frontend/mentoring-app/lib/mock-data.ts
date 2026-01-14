@@ -18,6 +18,7 @@ export interface Comment {
   content: string;
   timestamp: Date;
   likes: number;
+  isLiked?: boolean;
   replies?: Comment[];
 }
 
@@ -332,14 +333,25 @@ export function getCommentsByPostId(postId: string): Comment[] {
 }
 
 // Helper function to format timestamp
-export function formatTimestamp(date: Date): string {
+export function formatTimestamp(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Ensure we are comparing UTC to UTC to avoid timezone issues
   const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
+  const diffInMs = now.getTime() - dateObj.getTime();
+  
+  // Handle potential future dates due to clock drift
+  if (diffInMs < 0) {
+    return "Just now";
+  }
+
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMinutes < 60) {
+  if (diffInMinutes < 1) {
+    return "Just now";
+  } else if (diffInMinutes < 60) {
     return `${diffInMinutes}m ago`;
   } else if (diffInHours < 24) {
     return `${diffInHours}h ago`;

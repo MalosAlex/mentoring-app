@@ -1,4 +1,4 @@
-﻿using MentoringApp.Core.Abstractions;
+using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
 using MentoringApp.Persistance.Abstractions;
 using static System.Net.Mime.MediaTypeNames;
@@ -26,13 +26,13 @@ internal class CommunityService : ICommunityService
         await _communityRepository.AddAsync(request.Name, request.Description);
     }
 
-    public async Task<GetCommunitiesResponse> GetAllAsync()
+    public async Task<GetCommunitiesResponse> GetAllAsync(int? userId = null)
     {
         var communities = await _communityRepository.GetAsync();
 
         return new GetCommunitiesResponse
         {
-            Communities = communities.Select(c => c.ToModel()).ToList()
+            Communities = communities.Select(c => c.ToModel(userId)).ToList()
         };
     }
 

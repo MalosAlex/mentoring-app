@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { createPost, type PostResponse } from "@/lib/posts-service";
+import { useAuth } from "@/contexts/auth-context";
 
 interface CreatePostButtonProps {
   communityId: number;
@@ -56,6 +57,7 @@ export function CreatePostButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -93,7 +95,7 @@ export function CreatePostButton({
       "image/webp",
       "video/mp4",
     ];
-    
+
     if (allowedTypes.includes(file.type)) {
       setSelectedFile(file);
       const reader = new FileReader();
@@ -102,7 +104,9 @@ export function CreatePostButton({
       };
       reader.readAsDataURL(file);
     } else {
-      setContentError("Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4.");
+      setContentError(
+        "Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4."
+      );
     }
   };
 
@@ -114,9 +118,7 @@ export function CreatePostButton({
     }
   };
 
-  const handleContentChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     const validationError = ValidatePostContent(newValue);
 
@@ -167,8 +169,7 @@ export function CreatePostButton({
     }
   };
 
-  const isPostContentValid =
-    contentError === null && content.trim().length > 0;
+  const isPostContentValid = contentError === null && content.trim().length > 0;
 
   return (
     <>
@@ -195,13 +196,18 @@ export function CreatePostButton({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>
+                    {user?.fullName
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("") || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">
-                    Posting to:
+                  <p className="text-sm font-medium">
+                    {user?.fullName || "User"}
                   </p>
+                  <p className="text-xs text-muted-foreground">Posting to:</p>
                 </div>
               </div>
               <Badge variant="secondary" className="gap-1">
@@ -223,9 +229,7 @@ export function CreatePostButton({
                   {content.length}/{postContentMaxLength} characters
                 </span>
                 {contentError && (
-                  <span className="text-destructive">
-                    {contentError}
-                  </span>
+                  <span className="text-destructive">{contentError}</span>
                 )}
               </div>
             </div>
@@ -294,15 +298,15 @@ export function CreatePostButton({
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={!isPostContentValid || isSubmitting}
             >
               {isSubmitting ? (

@@ -12,6 +12,7 @@ public class PostResponse
     public DateTime CreatedAt { get; set; }
     public string AuthorName { get; set; } = string.Empty;
     public int ReactionCount { get; set; }
+    public bool IsLiked { get; set; }
     public List<PostCommentDto> Comments { get; set; } = new();
 }
 

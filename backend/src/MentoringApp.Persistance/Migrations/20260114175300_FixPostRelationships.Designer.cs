@@ -4,6 +4,7 @@ using MentoringApp.Persistance.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MentoringApp.Persistance.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260114175300_FixPostRelationships")]
+    partial class FixPostRelationships
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,40 +38,6 @@ namespace MentoringApp.Persistance.Migrations
                     b.HasIndex("UsersId");
 
                     b.ToTable("CommunityUser");
-                });
-
-            modelBuilder.Entity("MentoringApp.Persistance.Entities.CommentReaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("ReactionType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("CommentId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("CommentReactions");
                 });
 
             modelBuilder.Entity("MentoringApp.Persistance.Entities.Community", b =>
@@ -147,22 +116,22 @@ namespace MentoringApp.Persistance.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<int?>("ParentCommentId")
-                        .HasColumnType("int");
-
                     b.Property<int>("PostId")
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
 
-                    b.HasIndex("ParentCommentId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PostId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("PostComments");
                 });
@@ -191,9 +160,14 @@ namespace MentoringApp.Persistance.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.HasIndex("PostId", "UserId")
                         .IsUnique();
@@ -254,25 +228,6 @@ namespace MentoringApp.Persistance.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MentoringApp.Persistance.Entities.CommentReaction", b =>
-                {
-                    b.HasOne("MentoringApp.Persistance.Entities.PostComment", "Comment")
-                        .WithMany("Reactions")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MentoringApp.Persistance.Entities.User", "User")
-                        .WithMany("CommentReactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("MentoringApp.Persistance.Entities.Post", b =>
                 {
                     b.HasOne("MentoringApp.Persistance.Entities.Community", "Community")
@@ -294,11 +249,6 @@ namespace MentoringApp.Persistance.Migrations
 
             modelBuilder.Entity("MentoringApp.Persistance.Entities.PostComment", b =>
                 {
-                    b.HasOne("MentoringApp.Persistance.Entities.PostComment", "ParentComment")
-                        .WithMany("Replies")
-                        .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("MentoringApp.Persistance.Entities.Post", "Post")
                         .WithMany("Comments")
                         .HasForeignKey("PostId")
@@ -306,12 +256,14 @@ namespace MentoringApp.Persistance.Migrations
                         .IsRequired();
 
                     b.HasOne("MentoringApp.Persistance.Entities.User", "User")
-                        .WithMany("PostComments")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ParentComment");
+                    b.HasOne("MentoringApp.Persistance.Entities.User", null)
+                        .WithMany("PostComments")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("Post");
 
@@ -327,10 +279,14 @@ namespace MentoringApp.Persistance.Migrations
                         .IsRequired();
 
                     b.HasOne("MentoringApp.Persistance.Entities.User", "User")
-                        .WithMany("PostReactions")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("MentoringApp.Persistance.Entities.User", null)
+                        .WithMany("PostReactions")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("Post");
 
@@ -349,17 +305,8 @@ namespace MentoringApp.Persistance.Migrations
                     b.Navigation("Reactions");
                 });
 
-            modelBuilder.Entity("MentoringApp.Persistance.Entities.PostComment", b =>
-                {
-                    b.Navigation("Reactions");
-
-                    b.Navigation("Replies");
-                });
-
             modelBuilder.Entity("MentoringApp.Persistance.Entities.User", b =>
                 {
-                    b.Navigation("CommentReactions");
-
                     b.Navigation("PostComments");
 
                     b.Navigation("PostReactions");

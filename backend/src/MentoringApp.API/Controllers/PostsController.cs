@@ -45,9 +45,21 @@ public class PostsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get(int communityId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
-        _logger.LogInformation("User {UserId} fetching posts for community {CommunityId}", GetUserIdFromToken(), communityId);
+        var userId = GetUserIdFromToken();
+        _logger.LogInformation("User {UserId} fetching posts for community {CommunityId}", userId, communityId);
 
-        var response = await _postService.GetByCommunityAsync(communityId, pageNumber, pageSize);
+        var response = await _postService.GetByCommunityAsync(communityId, pageNumber, pageSize, userId);
+
+        return Ok(response);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetPost(int communityId, int id)
+    {
+        var userId = GetUserIdFromToken();
+        _logger.LogInformation("User {UserId} fetching post {PostId}", userId, id);
+
+        var response = await _postService.GetByIdAsync(id, userId);
 
         return Ok(response);
     }
@@ -98,6 +110,17 @@ public class PostsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("comments/{commentId}/react")]
+    public async Task<IActionResult> ReactToComment(int communityId, int commentId, [FromBody] ReactRequest body)
+    {
+        if (string.IsNullOrWhiteSpace(body.ReactionType))
+            return BadRequest("ReactionType required");
+
+        var userId = GetUserIdFromToken();
+        var result = await _postService.ReactToCommentAsync(commentId, userId, body.ReactionType);
+        return Ok(result);
+    }
+
     [HttpPost("{id}/comment")]
     public async Task<IActionResult> Comment(int communityId, int id, [FromBody] PostCommentDto body)
     {
@@ -105,7 +128,7 @@ public class PostsController : ControllerBase
             return BadRequest("Content required");
 
         var userId = GetUserIdFromToken();
-        var result = await _postService.CommentAsync(id, userId, body.Content);
+        var result = await _postService.CommentAsync(id, userId, body.Content, body.ParentCommentId);
         return Ok(result);
     }
 
@@ -151,10 +174,5 @@ public class PostsController : ControllerBase
 public class ReactRequest
 {
     public string ReactionType { get; set; } = string.Empty;
-}
-
-public class PostCommentDto
-{
-    public string Content { get; set; } = string.Empty;
 }
 

@@ -1,4 +1,4 @@
-﻿using MentoringApp.Persistance.Entities;
+using MentoringApp.Persistance.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -11,6 +11,7 @@ internal class DataContext : DbContext
     public DbSet<Post> Posts { get; set; }
     public DbSet<PostReaction> PostReactions { get; set; }
     public DbSet<PostComment> PostComments { get; set; }
+    public DbSet<CommentReaction> CommentReactions { get; set; }
 
     private readonly IConfiguration _configuration;
     public DataContext(DbContextOptions options, IConfiguration configuration) : base(options)
@@ -58,13 +59,13 @@ internal class DataContext : DbContext
             entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             entity.HasIndex(r => new { r.PostId, r.UserId }).IsUnique();
             entity.HasOne(r => r.Post)
-                  .WithMany()
+                  .WithMany(p => p.Reactions)
                   .HasForeignKey(r => r.PostId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(r => r.User)
-                  .WithMany()
+                  .WithMany(u => u.PostReactions)
                   .HasForeignKey(r => r.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                  .OnDelete(DeleteBehavior.NoAction);
         });
 
         builder.Entity<PostComment>(entity =>
@@ -72,13 +73,32 @@ internal class DataContext : DbContext
             entity.Property(c => c.Content).IsRequired().HasMaxLength(1000);
             entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             entity.HasOne(c => c.Post)
-                  .WithMany()
+                  .WithMany(p => p.Comments)
                   .HasForeignKey(c => c.PostId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(c => c.User)
-                  .WithMany()
+                  .WithMany(u => u.PostComments)
                   .HasForeignKey(c => c.UserId)
+                  .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(c => c.ParentComment)
+                  .WithMany(c => c.Replies)
+                  .HasForeignKey(c => c.ParentCommentId)
+                  .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        builder.Entity<CommentReaction>(entity =>
+        {
+            entity.Property(r => r.ReactionType).IsRequired().HasMaxLength(32);
+            entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasIndex(r => new { r.CommentId, r.UserId }).IsUnique();
+            entity.HasOne(r => r.Comment)
+                  .WithMany(c => c.Reactions)
+                  .HasForeignKey(r => r.CommentId)
                   .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(r => r.User)
+                  .WithMany(u => u.CommentReactions)
+                  .HasForeignKey(r => r.UserId)
+                  .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }
