@@ -472,7 +472,12 @@ export const reactToComment = async (
     const data = await response.json();
 
     const reaction: PostReactionResponse = {
-      postId: data.postId ?? data.PostId ?? commentId,
+      postId:
+        data.postId ??
+        data.PostId ??
+        data.commentId ??
+        data.CommentId ??
+        commentId,
       userId: data.userId ?? data.UserId ?? 0,
       reactionType: data.reactionType ?? data.ReactionType ?? reactionType,
       createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),

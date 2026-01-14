@@ -216,7 +216,8 @@ internal class PostService : IPostService
             UserId = userId,
             ReactionType = reactionType.Trim().ToLowerInvariant(),
             CreatedAt = DateTime.UtcNow,
-            TotalReactions = total
+            TotalReactions = total,
+            IsLiked = isLikedNow
         };
     }
 
