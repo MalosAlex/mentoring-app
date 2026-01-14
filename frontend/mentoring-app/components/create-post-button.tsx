@@ -18,10 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { createPost, type PostResponse } from "@/lib/posts-service";
 import { useAuth } from "@/contexts/auth-context";
-<<<<<<< HEAD
-=======
 import { getInitials } from "@/lib/helper";
->>>>>>> 332fe0e12a6387e03a63ed61e823d547f8d07c83
 
 interface CreatePostButtonProps {
   communityId: number;
@@ -62,7 +59,6 @@ export function CreatePostButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -201,25 +197,13 @@ export function CreatePostButton({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-<<<<<<< HEAD
                   <AvatarFallback>
-                    {user?.fullName
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("") || "U"}
+                    {getInitials(user?.fullName || "User")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium">
                     {user?.fullName || "User"}
-=======
-                  <AvatarFallback>{getInitials(user?.fullName || "")}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{user?.fullName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Posting to:
->>>>>>> 332fe0e12a6387e03a63ed61e823d547f8d07c83
                   </p>
                   <p className="text-xs text-muted-foreground">Posting to:</p>
                 </div>
