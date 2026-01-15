@@ -11,5 +11,8 @@ public class PostComment
     public User User { get; set; }
     public string Content { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public int? ParentCommentId { get; set; }
+    public PostComment? ParentComment { get; set; }
+    public List<PostComment> Replies { get; set; } = new();
     public List<CommentReaction> Reactions { get; set; } = new();
 }

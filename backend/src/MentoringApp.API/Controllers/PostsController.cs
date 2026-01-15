@@ -53,13 +53,13 @@ public class PostsController : ControllerBase
         return Ok(response);
     }
 
-    [HttpGet("~/api/users/{userId}/posts")]
-    public async Task<IActionResult> GetPostsByUser(int userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetPost(int communityId, int id)
     {
-        var currentUserId = GetUserIdFromToken();
-        _logger.LogInformation("Fetching posts for user {UserId}", userId);
+        var userId = GetUserIdFromToken();
+        _logger.LogInformation("User {UserId} fetching post {PostId}", userId, id);
 
-        var response = await _postService.GetByUserAsync(userId, pageNumber, pageSize, currentUserId);
+        var response = await _postService.GetByIdAsync(id, userId);
 
         return Ok(response);
     }
@@ -110,6 +110,17 @@ public class PostsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("comments/{commentId}/react")]
+    public async Task<IActionResult> ReactToComment(int communityId, int commentId, [FromBody] ReactRequest body)
+    {
+        if (string.IsNullOrWhiteSpace(body.ReactionType))
+            return BadRequest("ReactionType required");
+
+        var userId = GetUserIdFromToken();
+        var result = await _postService.ReactToCommentAsync(commentId, userId, body.ReactionType);
+        return Ok(result);
+    }
+
     [HttpPost("{id}/comment")]
     public async Task<IActionResult> Comment(int communityId, int id, [FromBody] PostCommentDto body)
     {
@@ -117,18 +128,7 @@ public class PostsController : ControllerBase
             return BadRequest("Content required");
 
         var userId = GetUserIdFromToken();
-        var result = await _postService.CommentAsync(id, userId, body.Content);
-        return Ok(result);
-    }
-
-    [HttpPost("~/api/comments/{commentId}/react")]
-    public async Task<IActionResult> ReactToComment(int commentId, [FromBody] ReactRequest body)
-    {
-        if (string.IsNullOrWhiteSpace(body.ReactionType))
-            return BadRequest("ReactionType required");
-
-        var userId = GetUserIdFromToken();
-        var result = await _postService.ReactToCommentAsync(commentId, userId, body.ReactionType);
+        var result = await _postService.CommentAsync(id, userId, body.Content, body.ParentCommentId);
         return Ok(result);
     }
 
@@ -175,9 +175,3 @@ public class ReactRequest
 {
     public string ReactionType { get; set; } = string.Empty;
 }
-
-public class PostCommentDto
-{
-    public string Content { get; set; } = string.Empty;
-}
-

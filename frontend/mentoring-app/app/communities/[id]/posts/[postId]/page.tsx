@@ -1,205 +1,214 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { 
-  getPostById as getPostByIdFromAPI,
-  reactToPost,
-  commentOnPost,
-  type PostResponse,
-  type PostCommentResponse
-} from "@/lib/posts-service";
+import { formatTimestamp } from "@/lib/helper";
+import { Comment, Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentItem } from "@/components/comment-item";
-import { Community, Post, Comment } from "@/lib/types";
-import { formatTimestamp } from "@/lib/helper";
-import { getAllCommunities } from "@/lib/communities-service";
+import {
+  getPostById,
+  reactToPost,
+  createComment,
+  type PostResponse,
+  type PostCommentResponse,
+} from "@/lib/posts-service";
+import { getCommunityById } from "@/lib/communities-service";
 import { useAuth } from "@/contexts/auth-context";
-
-// Convert API PostResponse to frontend Post type
-const mapPostResponseToPost = (postResponse: PostResponse, communityId: number): Post => {
-  const imageUrl = postResponse.mediaUrl 
-    ? `https://localhost:7117${postResponse.mediaUrl}` 
-    : undefined;
-  
-  return {
-    id: postResponse.id.toString(),
-    communityId: postResponse.communityId.toString(),
-    author: {
-      name: postResponse.authorName,
-    },
-    content: postResponse.caption,
-    image: imageUrl,
-    timestamp: new Date(postResponse.createdAt),
-    likes: postResponse.reactionCount,
-    isLiked: false, // Backend doesn't return this, would need separate check
-    comments: postResponse.comments.length,
-  };
-};
-
-// Convert API PostCommentResponse to frontend Comment type
-const mapCommentResponseToComment = (commentResponse: PostCommentResponse): Comment => {
-  return {
-    id: commentResponse.id.toString(),
-    postId: commentResponse.postId.toString(),
-    author: {
-      name: commentResponse.authorName,
-    },
-    content: commentResponse.content,
-    timestamp: new Date(commentResponse.createdAt),
-    likes: 0, // Backend doesn't support comment reactions
-    replies: [], // Backend doesn't support nested replies
-  };
-};
 
 export default function PostDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const communityId = params.id as string;
   const postId = params.postId as string;
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  
-  
-  const community = communities.find(c => c.id === communityId);
+  const { user } = useAuth();
+
+  const [community, setCommunity] = useState<Community | null>(null);
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [commentText, setCommentText] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isReacting, setIsReacting] = useState(false);
-  const [isCommenting, setIsCommenting] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  useEffect(() => {
-      // Redirect to login if not authenticated
-      if (!authLoading && !isAuthenticated) {
-        router.push("/auth/login");
-        return;
-      }
-  
-      // Only fetch if authenticated
-      if (!isAuthenticated) {
-        return;
-      }
-  
-      const fetchCommunities = async () => {
-        try {
-          const data = await getAllCommunities();
-          setCommunities(data);
-        } catch (err) {
-          setError("Failed to load communities. Please try again later.");
-          console.error(err);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-  
-      fetchCommunities();
-    }, [isAuthenticated, authLoading, router]);
+  // Convert backend PostResponse to frontend Post type
+  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
+    const imageUrl = postResponse.mediaUrl
+      ? `http://localhost:5216${postResponse.mediaUrl}`
+      : undefined;
 
-  // Fetch post and comments from API
-  useEffect(() => {
-    const fetchPost = async () => {
-      if (!communityId || !postId) return;
-      
-      setIsLoading(true);
-      setError(null);
+    // Ensure the date is parsed correctly from UTC string
+    const timestamp =
+      typeof postResponse.createdAt === "string"
+        ? new Date(postResponse.createdAt)
+        : new Date(postResponse.createdAt);
 
-      try {
-        const numericCommunityId = parseInt(communityId, 10);
-        const numericPostId = parseInt(postId, 10);
-        
-        if (isNaN(numericCommunityId) || isNaN(numericPostId)) {
-          setError("Invalid community or post ID");
-          setIsLoading(false);
-          return;
-        }
-
-        const result = await getPostByIdFromAPI(numericCommunityId, numericPostId);
-        
-        if (!result.success || !result.data) {
-          setError(result.message || "Failed to load post");
-          setIsLoading(false);
-          return;
-        }
-
-        const mappedPost = mapPostResponseToPost(result.data, numericCommunityId);
-        setPost(mappedPost);
-        setLikes(mappedPost.likes);
-        
-        // Convert comments from API
-        const mappedComments = result.data.comments.map(mapCommentResponseToComment);
-        setComments(mappedComments);
-      } catch (err) {
-        setError("An unexpected error occurred");
-        console.error("Error fetching post:", err);
-      } finally {
-        setIsLoading(false);
-      }
+    return {
+      id: postResponse.id.toString(),
+      communityId: postResponse.communityId.toString(),
+      author: {
+        name: postResponse.authorName,
+      },
+      content: postResponse.caption,
+      image: imageUrl,
+      timestamp: timestamp,
+      likes: postResponse.reactionCount,
+      isLiked: postResponse.isLiked,
+      comments: postResponse.comments.length,
     };
+  };
 
-    fetchPost();
-  }, [communityId, postId]);
-  
+  // Convert backend PostCommentResponse to frontend Comment type
+  const mapCommentResponseToComment = (c: PostCommentResponse): Comment => ({
+    id: c.id.toString(),
+    postId: c.postId.toString(),
+    author: {
+      name: c.authorName,
+    },
+    content: c.content,
+    timestamp: new Date(c.createdAt),
+    likes: c.reactionCount,
+    isLiked: c.isLiked,
+    replies: c.replies?.map(mapCommentResponseToComment) || [],
+  });
 
-  const handleToggleLike = async () => {
-    if (!post || !communityId || !postId || isReacting) return;
+  const fetchData = async () => {
+    if (!communityId || !postId) return;
 
-    setIsReacting(true);
+    setIsLoading(true);
+    setError(null);
+
     try {
       const numericCommunityId = parseInt(communityId, 10);
       const numericPostId = parseInt(postId, 10);
-      
-      const result = await reactToPost(numericCommunityId, numericPostId, "like");
-      
-      if (result.success && result.data) {
-        setIsLiked(!isLiked);
-        setLikes(result.data.totalReactions);
+
+      // Fetch community and post data
+      const [communityData, postResult] = await Promise.all([
+        getCommunityById(communityId),
+        getPostById(numericCommunityId, numericPostId),
+      ]);
+
+      if (communityData) {
+        setCommunity(communityData);
+      }
+
+      if (postResult.success && postResult.data) {
+        const mappedPost = mapPostResponseToPost(postResult.data);
+        setPost(mappedPost);
+        setIsLiked(mappedPost.isLiked || false);
+        setLikes(mappedPost.likes || 0);
+
+        const mappedComments = postResult.data.comments.map(
+          mapCommentResponseToComment
+        );
+        setComments(mappedComments);
       } else {
-        console.error("Failed to react to post:", result.message);
-        // Still update UI optimistically, but show error
-        alert(result.message || "Failed to react to post");
+        setError(postResult.message || "Failed to load post");
       }
     } catch (err) {
-      console.error("Error reacting to post:", err);
-      alert("Failed to react to post. Please try again.");
+      setError("An unexpected error occurred");
+      console.error("Error fetching data:", err);
     } finally {
-      setIsReacting(false);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [communityId, postId]);
+
+  const handleToggleLike = async () => {
+    if (!post || !communityId || !community?.isJoined) return;
+
+    const numericCommunityId = parseInt(communityId, 10);
+    const numericPostId = parseInt(postId, 10);
+
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikes(wasLiked ? likes - 1 : likes + 1);
+
+    try {
+      const result = await reactToPost(
+        numericCommunityId,
+        numericPostId,
+        "like"
+      );
+      if (result.success && result.data) {
+        setIsLiked(result.data.isLiked);
+        setLikes(result.data.totalReactions);
+      }
+    } catch (err) {
+      setIsLiked(wasLiked);
+      setLikes(wasLiked ? likes + 1 : likes - 1);
     }
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !post || !communityId || !postId || isCommenting) return;
+    if (
+      !commentText.trim() ||
+      !communityId ||
+      !postId ||
+      isSubmittingComment ||
+      !community?.isJoined
+    )
+      return;
 
-    setIsCommenting(true);
+    setIsSubmittingComment(true);
     try {
       const numericCommunityId = parseInt(communityId, 10);
       const numericPostId = parseInt(postId, 10);
-      
-      const result = await commentOnPost(numericCommunityId, numericPostId, commentText);
-      
+
+      const result = await createComment(
+        numericCommunityId,
+        numericPostId,
+        commentText.trim()
+      );
+
       if (result.success && result.data) {
         const newComment = mapCommentResponseToComment(result.data);
         setComments([newComment, ...comments]);
         setCommentText("");
-      } else {
-        console.error("Failed to add comment:", result.message);
-        alert(result.message || "Failed to add comment");
       }
     } catch (err) {
-      console.error("Error adding comment:", err);
-      alert("Failed to add comment. Please try again.");
+      console.error("Failed to add comment:", err);
     } finally {
-      setIsCommenting(false);
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleReplyToComment = async (
+    parentCommentId: string,
+    replyContent: string
+  ) => {
+    if (!communityId || !postId || !community?.isJoined) return;
+
+    try {
+      const numericCommunityId = parseInt(communityId, 10);
+      const numericPostId = parseInt(postId, 10);
+      const numericParentId = parseInt(parentCommentId, 10);
+
+      const result = await createComment(
+        numericCommunityId,
+        numericPostId,
+        replyContent,
+        numericParentId
+      );
+
+      if (result.success && result.data) {
+        // Refresh data to show nested reply correctly
+        await fetchData();
+      }
+    } catch (err) {
+      console.error("Failed to add reply:", err);
     }
   };
 
@@ -207,7 +216,7 @@ export default function PostDetailPage() {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       </div>
     );
@@ -217,11 +226,13 @@ export default function PostDetailPage() {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">{error || "Post not found"}</h1>
-          <Link href="/communities">
+          <h1 className="text-2xl font-bold mb-2">
+            {error || "Post not found"}
+          </h1>
+          <Link href={`/communities/${communityId}`}>
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Communities
+              Back to Community
             </Button>
           </Link>
         </div>
@@ -245,7 +256,10 @@ export default function PostDetailPage() {
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarFallback>
-                {post.author.name.split(' ').map(n => n[0]).join('')}
+                {post.author.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -258,7 +272,7 @@ export default function PostDetailPage() {
         </CardHeader>
         <CardContent>
           <p className="text-base mb-4 whitespace-pre-wrap">{post.content}</p>
-          
+
           {post.image && (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
               <Image
@@ -266,6 +280,7 @@ export default function PostDetailPage() {
                 alt="Post image"
                 fill
                 className="object-cover"
+                unoptimized
               />
             </div>
           )}
@@ -273,23 +288,24 @@ export default function PostDetailPage() {
           <Separator className="my-4" />
 
           <div className="flex items-center gap-6">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="gap-2"
               onClick={handleToggleLike}
-              disabled={isReacting}
             >
-              {isReacting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              )}
+              <Heart
+                className={`h-4 w-4 ${isLiked ? "text-red-500" : ""}`}
+                fill={isLiked ? "currentColor" : "none"}
+              />
               <span>{likes}</span>
             </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MessageCircle className="h-4 w-4" />
-              <span>{comments.length} {comments.length === 1 ? 'comment' : 'comments'}</span>
+              <span>
+                {comments.length}{" "}
+                {comments.length === 1 ? "comment" : "comments"}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -300,7 +316,12 @@ export default function PostDetailPage() {
         <CardContent className="pt-6">
           <div className="flex gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">JD</AvatarFallback>
+              <AvatarFallback className="text-xs">
+                {user?.fullName
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("") || "U"}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-3">
               <Textarea
@@ -308,23 +329,19 @@ export default function PostDetailPage() {
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 className="min-h-[80px] resize-none"
+                disabled={isSubmittingComment}
               />
               <div className="flex justify-end">
-                <Button 
+                <Button
                   onClick={handleAddComment}
-                  disabled={!commentText.trim() || isCommenting}
+                  disabled={!commentText.trim() || isSubmittingComment}
                 >
-                  {isCommenting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Posting...
-                    </>
+                  {isSubmittingComment ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Comment
-                    </>
+                    <Send className="h-4 w-4 mr-2" />
                   )}
+                  Comment
                 </Button>
               </div>
             </div>
@@ -334,10 +351,8 @@ export default function PostDetailPage() {
 
       {/* Comments Section */}
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold">
-          Comments ({comments.length})
-        </h2>
-        
+        <h2 className="text-xl font-semibold">Comments ({comments.length})</h2>
+
         {comments.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -350,7 +365,12 @@ export default function PostDetailPage() {
         ) : (
           <div className="space-y-6">
             {comments.map((comment) => (
-              <CommentItem key={comment.id} comment={comment} />
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onReply={handleReplyToComment}
+                disabled={!community?.isJoined}
+              />
             ))}
           </div>
         )}
@@ -358,4 +378,3 @@ export default function PostDetailPage() {
     </div>
   );
 }
-

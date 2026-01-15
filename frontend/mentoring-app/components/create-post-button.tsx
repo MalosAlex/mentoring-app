@@ -4,13 +4,13 @@ import { useState, useRef } from "react";
 import { Plus, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,7 +96,7 @@ export function CreatePostButton({
       "image/webp",
       "video/mp4",
     ];
-    
+
     if (allowedTypes.includes(file.type)) {
       setSelectedFile(file);
       const reader = new FileReader();
@@ -105,7 +105,9 @@ export function CreatePostButton({
       };
       reader.readAsDataURL(file);
     } else {
-      setContentError("Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4.");
+      setContentError(
+        "Unsupported file type. Please use JPEG, PNG, GIF, WEBP, or MP4."
+      );
     }
   };
 
@@ -117,9 +119,7 @@ export function CreatePostButton({
     }
   };
 
-  const handleContentChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     const validationError = ValidatePostContent(newValue);
 
@@ -170,8 +170,7 @@ export function CreatePostButton({
     }
   };
 
-  const isPostContentValid =
-    contentError === null && content.trim().length > 0;
+  const isPostContentValid = contentError === null && content.trim().length > 0;
 
   return (
     <>
@@ -198,13 +197,15 @@ export function CreatePostButton({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>{getInitials(user?.fullName || "")}</AvatarFallback>
+                  <AvatarFallback>
+                    {getInitials(user?.fullName || "User")}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium">{user?.fullName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Posting to:
+                  <p className="text-sm font-medium">
+                    {user?.fullName || "User"}
                   </p>
+                  <p className="text-xs text-muted-foreground">Posting to:</p>
                 </div>
               </div>
               <Badge variant="secondary" className="gap-1">
@@ -226,9 +227,7 @@ export function CreatePostButton({
                   {content.length}/{postContentMaxLength} characters
                 </span>
                 {contentError && (
-                  <span className="text-destructive">
-                    {contentError}
-                  </span>
+                  <span className="text-destructive">{contentError}</span>
                 )}
               </div>
             </div>
@@ -297,15 +296,15 @@ export function CreatePostButton({
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={!isPostContentValid || isSubmitting}
             >
               {isSubmitting ? (

@@ -34,8 +34,15 @@ export async function getAllCommunities(): Promise<Community[]> {
     name: item.name,
     description: item.description,
     memberCount: item.memberCount ?? 0,
-    isJoined: item.isJoined,
+    isJoined: item.isJoined ?? false,
   }));
+}
+
+export async function getCommunityById(
+  communityId: string
+): Promise<Community | undefined> {
+  const communities = await getAllCommunities();
+  return communities.find((c) => c.id === communityId);
 }
 
 export async function joinCommunity(communityId: string): Promise<void> {

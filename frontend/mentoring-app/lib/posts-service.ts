@@ -1,9 +1,5 @@
 import { getStoredToken } from "./auth-service";
-
-const DEFAULT_API_BASE_URL = "https://localhost:7117/api";
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
-).replace(/\/$/, "");
+import { API_BASE_URL } from "./helper";
 
 export interface CreatePostRequest {
   caption: string;
@@ -19,6 +15,7 @@ export interface PostResponse {
   createdAt: string;
   authorName: string;
   reactionCount: number;
+  isLiked: boolean;
   comments: PostCommentResponse[];
 }
 
@@ -29,6 +26,10 @@ export interface PostCommentResponse {
   content: string;
   createdAt: string;
   authorName: string;
+  parentCommentId?: number;
+  reactionCount: number;
+  isLiked: boolean;
+  replies: PostCommentResponse[];
 }
 
 export interface GetPostsResponse {
@@ -43,6 +44,7 @@ export interface PostReactionResponse {
   reactionType: string;
   createdAt: string;
   totalReactions: number;
+  isLiked: boolean;
 }
 
 const parseErrorMessage = async (response: Response): Promise<string> => {
@@ -105,6 +107,21 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
+const mapCommentResponse = (c: any): PostCommentResponse => ({
+  id: c.id ?? c.Id ?? 0,
+  postId: c.postId ?? c.PostId ?? 0,
+  userId: c.userId ?? c.UserId ?? 0,
+  content: c.content ?? c.Content ?? "",
+  createdAt: c.createdAt ?? c.CreatedAt ?? new Date().toISOString(),
+  authorName: c.authorName ?? c.AuthorName ?? "",
+  parentCommentId: c.parentCommentId ?? c.ParentCommentId,
+  reactionCount: c.reactionCount ?? c.ReactionCount ?? 0,
+  isLiked: c.isLiked ?? c.IsLiked ?? false,
+  replies: (c.replies ?? c.Replies ?? []).map((r: any) =>
+    mapCommentResponse(r)
+  ),
+});
+
 /**
  * Creates a new post in a community
  */
@@ -144,7 +161,7 @@ export const createPost = async (
     }
 
     const data = await response.json();
-    
+
     // Handle both camelCase and PascalCase responses
     const post: PostResponse = {
       id: data.id ?? data.Id ?? 0,
@@ -155,14 +172,8 @@ export const createPost = async (
       createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
       authorName: data.authorName ?? data.AuthorName ?? "",
       reactionCount: data.reactionCount ?? data.ReactionCount ?? 0,
-      comments: (data.comments ?? data.Comments ?? []).map((c: any) => ({
-        id: c.id ?? c.Id ?? 0,
-        postId: c.postId ?? c.PostId ?? 0,
-        userId: c.userId ?? c.UserId ?? 0,
-        content: c.content ?? c.Content ?? "",
-        createdAt: c.createdAt ?? c.CreatedAt ?? new Date().toISOString(),
-        authorName: c.authorName ?? c.AuthorName ?? "",
-      })),
+      isLiked: data.isLiked ?? data.IsLiked ?? false,
+      comments: (data.comments ?? data.Comments ?? []).map(mapCommentResponse),
     };
 
     return {
@@ -173,7 +184,10 @@ export const createPost = async (
     console.error("Error creating post:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
     };
   }
 };
@@ -191,7 +205,8 @@ export const getPosts = async (
     if (!token) {
       return {
         success: false,
-        message: "You must be logged in to view posts. Please log in and try again.",
+        message:
+          "You must be logged in to view posts. Please log in and try again.",
       };
     }
 
@@ -214,9 +229,12 @@ export const getPosts = async (
           message: "Your session has expired. Please log in again.",
         };
       }
-      
+
       const errorMessage = await parseErrorMessage(response);
-      console.error(`Failed to fetch posts: ${response.status} ${response.statusText}`, errorMessage);
+      console.error(
+        `Failed to fetch posts: ${response.status} ${response.statusText}`,
+        errorMessage
+      );
       return {
         success: false,
         message: errorMessage,
@@ -224,7 +242,7 @@ export const getPosts = async (
     }
 
     const data = await response.json();
-    
+
     // Handle both camelCase and PascalCase responses
     const postsResponse: GetPostsResponse = {
       posts: (data.posts ?? data.Posts ?? []).map((p: any) => ({
@@ -236,14 +254,8 @@ export const getPosts = async (
         createdAt: p.createdAt ?? p.CreatedAt ?? new Date().toISOString(),
         authorName: p.authorName ?? p.AuthorName ?? "",
         reactionCount: p.reactionCount ?? p.ReactionCount ?? 0,
-        comments: (p.comments ?? p.Comments ?? []).map((c: any) => ({
-          id: c.id ?? c.Id ?? 0,
-          postId: c.postId ?? c.PostId ?? 0,
-          userId: c.userId ?? c.UserId ?? 0,
-          content: c.content ?? c.Content ?? "",
-          createdAt: c.createdAt ?? c.CreatedAt ?? new Date().toISOString(),
-          authorName: c.authorName ?? c.AuthorName ?? "",
-        })),
+        isLiked: p.isLiked ?? p.IsLiked ?? false,
+        comments: (p.comments ?? p.Comments ?? []).map(mapCommentResponse),
       })),
       pageNumber: data.pageNumber ?? data.PageNumber ?? pageNumber,
       hasMore: data.hasMore ?? data.HasMore ?? false,
@@ -257,7 +269,10 @@ export const getPosts = async (
     console.error("Error fetching posts:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
     };
   }
 };
@@ -275,7 +290,8 @@ export const getPostsForUser = async (
     if (!token) {
       return {
         success: false,
-        message: "You must be logged in to view posts. Please log in and try again.",
+        message:
+          "You must be logged in to view posts. Please log in and try again.",
       };
     }
 
@@ -298,9 +314,12 @@ export const getPostsForUser = async (
           message: "Your session has expired. Please log in again.",
         };
       }
-      
+
       const errorMessage = await parseErrorMessage(response);
-      console.error(`Failed to fetch posts: ${response.status} ${response.statusText}`, errorMessage);
+      console.error(
+        `Failed to fetch posts: ${response.status} ${response.statusText}`,
+        errorMessage
+      );
       return {
         success: false,
         message: errorMessage,
@@ -308,7 +327,7 @@ export const getPostsForUser = async (
     }
 
     const data = await response.json();
-    
+
     // Handle both camelCase and PascalCase responses
     const postsResponse: GetPostsResponse = {
       posts: (data.posts ?? data.Posts ?? []).map((p: any) => ({
@@ -320,14 +339,8 @@ export const getPostsForUser = async (
         createdAt: p.createdAt ?? p.CreatedAt ?? new Date().toISOString(),
         authorName: p.authorName ?? p.AuthorName ?? "",
         reactionCount: p.reactionCount ?? p.ReactionCount ?? 0,
-        comments: (p.comments ?? p.Comments ?? []).map((c: any) => ({
-          id: c.id ?? c.Id ?? 0,
-          postId: c.postId ?? c.PostId ?? 0,
-          userId: c.userId ?? c.UserId ?? 0,
-          content: c.content ?? c.Content ?? "",
-          createdAt: c.createdAt ?? c.CreatedAt ?? new Date().toISOString(),
-          authorName: c.authorName ?? c.AuthorName ?? "",
-        })),
+        isLiked: p.isLiked ?? p.IsLiked ?? false,
+        comments: (p.comments ?? p.Comments ?? []).map(mapCommentResponse),
       })),
       pageNumber: data.pageNumber ?? data.PageNumber ?? pageNumber,
       hasMore: data.hasMore ?? data.HasMore ?? false,
@@ -341,25 +354,32 @@ export const getPostsForUser = async (
     console.error("Error fetching posts:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
     };
   }
 };
 
 /**
- * Reacts to a post (like/unlike)
+ * Reacts to a post
  */
 export const reactToPost = async (
   communityId: number,
   postId: number,
-  reactionType: string = "like"
-): Promise<{ success: boolean; data?: PostReactionResponse; message?: string }> => {
+  reactionType: string
+): Promise<{
+  success: boolean;
+  data?: PostReactionResponse;
+  message?: string;
+}> => {
   try {
     const token = getStoredToken();
     if (!token) {
       return {
         success: false,
-        message: "You must be logged in to react to posts.",
+        message: "You must be logged in to react to a post.",
       };
     }
 
@@ -371,18 +391,11 @@ export const reactToPost = async (
           ...getAuthHeaders(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ReactionType: reactionType }),
+        body: JSON.stringify({ reactionType }),
       }
     );
 
     if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          success: false,
-          message: "Your session has expired. Please log in again.",
-        };
-      }
-      
       return {
         success: false,
         message: await parseErrorMessage(response),
@@ -390,49 +403,188 @@ export const reactToPost = async (
     }
 
     const data = await response.json();
-    
-    const reactionResponse: PostReactionResponse = {
+
+    const reaction: PostReactionResponse = {
       postId: data.postId ?? data.PostId ?? postId,
       userId: data.userId ?? data.UserId ?? 0,
       reactionType: data.reactionType ?? data.ReactionType ?? reactionType,
       createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
       totalReactions: data.totalReactions ?? data.TotalReactions ?? 0,
+      isLiked: data.isLiked ?? data.IsLiked ?? false,
     };
 
     return {
       success: true,
-      data: reactionResponse,
+      data: reaction,
     };
   } catch (error) {
     console.error("Error reacting to post:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
     };
   }
 };
 
 /**
- * Comments on a post
+ * Reacts to a comment
  */
-export const commentOnPost = async (
+export const reactToComment = async (
   communityId: number,
-  postId: number,
-  content: string
-): Promise<{ success: boolean; data?: PostCommentResponse; message?: string }> => {
+  commentId: number,
+  reactionType: string
+): Promise<{
+  success: boolean;
+  data?: PostReactionResponse;
+  message?: string;
+}> => {
   try {
     const token = getStoredToken();
     if (!token) {
       return {
         success: false,
-        message: "You must be logged in to comment on posts.",
+        message: "You must be logged in to react to a comment.",
       };
     }
 
-    if (!content.trim()) {
+    const response = await fetch(
+      `${API_BASE_URL}/communities/${communityId}/posts/comments/${commentId}/react`,
+      {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reactionType }),
+      }
+    );
+
+    if (!response.ok) {
       return {
         success: false,
-        message: "Comment content cannot be empty.",
+        message: await parseErrorMessage(response),
+      };
+    }
+
+    const data = await response.json();
+
+    const reaction: PostReactionResponse = {
+      postId:
+        data.postId ??
+        data.PostId ??
+        data.commentId ??
+        data.CommentId ??
+        commentId,
+      userId: data.userId ?? data.UserId ?? 0,
+      reactionType: data.reactionType ?? data.ReactionType ?? reactionType,
+      createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
+      totalReactions: data.totalReactions ?? data.TotalReactions ?? 0,
+      isLiked: data.isLiked ?? data.IsLiked ?? false,
+    };
+
+    return {
+      success: true,
+      data: reaction,
+    };
+  } catch (error) {
+    console.error("Error reacting to comment:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
+    };
+  }
+};
+
+/**
+ * Gets a single post by ID
+ */
+export const getPostById = async (
+  communityId: number,
+  postId: number
+): Promise<{ success: boolean; data?: PostResponse; message?: string }> => {
+  try {
+    const token = getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "You must be logged in to view the post.",
+      };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/communities/${communityId}/posts/${postId}`,
+      {
+        method: "GET",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: await parseErrorMessage(response),
+      };
+    }
+
+    const data = await response.json();
+
+    const post: PostResponse = {
+      id: data.id ?? data.Id ?? 0,
+      communityId: data.communityId ?? data.CommunityId ?? communityId,
+      userId: data.userId ?? data.UserId ?? 0,
+      caption: data.caption ?? data.Caption ?? "",
+      mediaUrl: data.mediaUrl ?? data.MediaUrl ?? undefined,
+      createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
+      authorName: data.authorName ?? data.AuthorName ?? "",
+      reactionCount: data.reactionCount ?? data.ReactionCount ?? 0,
+      isLiked: data.isLiked ?? data.IsLiked ?? false,
+      comments: (data.comments ?? data.Comments ?? []).map(mapCommentResponse),
+    };
+
+    return {
+      success: true,
+      data: post,
+    };
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
+    };
+  }
+};
+
+/**
+ * Creates a comment on a post
+ */
+export const createComment = async (
+  communityId: number,
+  postId: number,
+  content: string,
+  parentCommentId?: number
+): Promise<{
+  success: boolean;
+  data?: PostCommentResponse;
+  message?: string;
+}> => {
+  try {
+    const token = getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "You must be logged in to comment.",
       };
     }
 
@@ -444,18 +596,11 @@ export const commentOnPost = async (
           ...getAuthHeaders(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ Content: content.trim() }),
+        body: JSON.stringify({ content, parentCommentId }),
       }
     );
 
     if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          success: false,
-          message: "Your session has expired. Please log in again.",
-        };
-      }
-      
       return {
         success: false,
         message: await parseErrorMessage(response),
@@ -463,7 +608,7 @@ export const commentOnPost = async (
     }
 
     const data = await response.json();
-    
+
     const comment: PostCommentResponse = {
       id: data.id ?? data.Id ?? 0,
       postId: data.postId ?? data.PostId ?? postId,
@@ -471,6 +616,10 @@ export const commentOnPost = async (
       content: data.content ?? data.Content ?? content,
       createdAt: data.createdAt ?? data.CreatedAt ?? new Date().toISOString(),
       authorName: data.authorName ?? data.AuthorName ?? "",
+      parentCommentId: data.parentCommentId ?? data.ParentCommentId,
+      reactionCount: data.reactionCount ?? data.ReactionCount ?? 0,
+      isLiked: data.isLiked ?? data.IsLiked ?? false,
+      replies: [],
     };
 
     return {
@@ -478,62 +627,13 @@ export const commentOnPost = async (
       data: comment,
     };
   } catch (error) {
-    console.error("Error commenting on post:", error);
+    console.error("Error creating comment:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
-    };
-  }
-};
-
-/**
- * Gets a single post by ID by fetching from the posts list
- */
-export const getPostById = async (
-  communityId: number,
-  postId: number
-): Promise<{ success: boolean; data?: PostResponse; message?: string }> => {
-  try {
-    // Fetch posts and find the one we need
-    // We'll search through multiple pages if needed
-    let pageNumber = 1;
-    const pageSize = 50; // Use larger page size to reduce API calls
-    
-    while (pageNumber <= 10) { // Limit to 10 pages to avoid infinite loops
-      const result = await getPosts(communityId, pageNumber, pageSize);
-      
-      if (!result.success || !result.data) {
-        return {
-          success: false,
-          message: result.message || "Failed to fetch posts",
-        };
-      }
-      
-      const post = result.data.posts.find(p => p.id === postId);
-      if (post) {
-        return {
-          success: true,
-          data: post,
-        };
-      }
-      
-      // If we've reached the last page, stop searching
-      if (!result.data.hasMore) {
-        break;
-      }
-      
-      pageNumber++;
-    }
-    
-    return {
-      success: false,
-      message: "Post not found.",
-    };
-  } catch (error) {
-    console.error("Error fetching post:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unable to reach the server. Please try again later.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to reach the server. Please try again later.",
     };
   }
 };

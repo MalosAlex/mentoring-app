@@ -1,66 +1,62 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { formatTimestamp } from "@/lib/helper";
+import { Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { CreatePostButton } from "@/components/create-post-button";
 import { usePosts } from "@/contexts/posts-context";
-
 import { getPosts, reactToPost, type PostResponse } from "@/lib/posts-service";
-import { getAllCommunities } from "@/lib/communities-service";
-import { useAuth } from "@/contexts/auth-context";
-import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
-import { Community, Post } from "@/lib/types";
+import { getCommunityById, joinCommunity } from "@/lib/communities-service";
 
 export default function CommunityFeedPage() {
-  const router = useRouter();
   const params = useParams();
   const communityId = params.id as string;
   const { addPost } = usePosts();
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
-  const community = communities.find(c => c.id === communityId);
+  const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!authLoading && !isAuthenticated) {
-      router.push("/auth/login");
-      return;
-    }
+  // Convert backend PostResponse to frontend Post type
+  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
+    // Construct full URL for images (backend serves static files)
+    const imageUrl = postResponse.mediaUrl 
+      ? `http://localhost:5216${postResponse.mediaUrl}` 
+      : undefined;
+    
+    // Ensure the date is parsed correctly from UTC string
+    const timestamp = typeof postResponse.createdAt === 'string' 
+      ? new Date(postResponse.createdAt) 
+      : new Date(postResponse.createdAt);
 
-    // Only fetch if authenticated
-    if (!isAuthenticated) {
-      return;
-    }
-
-    const fetchCommunities = async () => {
-      try {
-        const data = await getAllCommunities();
-        setCommunities(data);
-      } catch (err) {
-        setError("Failed to load communities. Please try again later.");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
+    return {
+      id: postResponse.id.toString(),
+      communityId: postResponse.communityId.toString(),
+      author: {
+        name: postResponse.authorName,
+      },
+      content: postResponse.caption,
+      image: imageUrl,
+      timestamp: timestamp,
+      likes: postResponse.reactionCount,
+      isLiked: postResponse.isLiked,
+      comments: postResponse.comments.length,
     };
+  };
 
-    fetchCommunities();
-  }, [isAuthenticated, authLoading, router]);
-
-  // Fetch posts from API
+  // Fetch posts and community from API
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchData = async () => {
       if (!communityId) return;
       
       setIsLoading(true);
@@ -72,6 +68,12 @@ export default function CommunityFeedPage() {
           setError("Invalid community ID");
           setIsLoading(false);
           return;
+        }
+
+        // Fetch community details
+        const communityData = await getCommunityById(communityId);
+        if (communityData) {
+          setCommunity(communityData);
         }
 
         const result = await getPosts(numericCommunityId, 1, 20);
@@ -97,78 +99,72 @@ export default function CommunityFeedPage() {
         }
       } catch (err) {
         setError("An unexpected error occurred");
-        console.error("Error fetching posts:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPosts();
+    fetchData();
   }, [communityId]);
 
   const handleToggleLike = async (postId: string) => {
     const post = posts.find(p => p.id === postId);
-    if (!post) return;
+    if (!post || !communityId) return;
 
     const numericCommunityId = parseInt(communityId, 10);
     const numericPostId = parseInt(postId, 10);
     
-    if (isNaN(numericCommunityId) || isNaN(numericPostId)) {
-      console.error("Invalid community or post ID");
-      return;
-    }
-
-    // Optimistically update UI
+    // Optimistically update
     const wasLiked = post.isLiked;
     setPosts(posts.map(p => 
       p.id === postId 
         ? { 
             ...p, 
-            isLiked: !p.isLiked,
-            likes: p.isLiked ? p.likes - 1 : p.likes + 1
+            isLiked: !wasLiked,
+            likes: wasLiked ? p.likes - 1 : p.likes + 1
           }
         : p
     ));
 
     try {
       const result = await reactToPost(numericCommunityId, numericPostId, "like");
-      
       if (result.success && result.data) {
-        // Update with actual count from server
+        // Update with actual count and liked state from server
         setPosts(posts.map(p => 
           p.id === postId 
             ? { 
                 ...p, 
-                isLiked: !wasLiked,
-                likes: result.data!.totalReactions
+                likes: result.data!.totalReactions,
+                isLiked: result.data!.isLiked
               }
             : p
         ));
-      } else {
-        // Revert on error
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { 
-                ...p, 
-                isLiked: wasLiked,
-                likes: post.likes
-              }
-            : p
-        ));
-        console.error("Failed to react to post:", result.message);
       }
-    } catch (error) {
+    } catch (err) {
       // Revert on error
       setPosts(posts.map(p => 
         p.id === postId 
           ? { 
               ...p, 
               isLiked: wasLiked,
-              likes: post.likes
+              likes: wasLiked ? p.likes + 1 : p.likes - 1
             }
           : p
       ));
-      console.error("Error reacting to post:", error);
+    }
+  };
+
+  const handleJoinCommunity = async () => {
+    if (!communityId || isJoining) return;
+    setIsJoining(true);
+    try {
+      await joinCommunity(communityId);
+      setCommunity(prev => prev ? { ...prev, isJoined: true } : null);
+    } catch (err) {
+      console.error("Failed to join:", err);
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -222,8 +218,8 @@ export default function CommunityFeedPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      {/* Create Post Button */}
-      {!isNaN(numericCommunityId) && (
+      {/* Create Post Button - Only show if joined */}
+      {!isNaN(numericCommunityId) && community?.isJoined && (
         <CreatePostButton 
           communityId={numericCommunityId}
           communityName={community.name}
@@ -233,17 +229,45 @@ export default function CommunityFeedPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <Link href="/communities">
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Communities
-          </Button>
-        </Link>
-        <h1 className="text-4xl font-bold mb-2">{community.name}</h1>
-        <p className="text-muted-foreground">{community.description}</p>
+        <div className="flex justify-between items-start mb-4">
+          <Link href="/communities">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Communities
+            </Button>
+          </Link>
+          
+          {!community?.isJoined && (
+            <Button onClick={handleJoinCommunity} disabled={isJoining}>
+              {isJoining ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Join Community to Post
+            </Button>
+          )}
+        </div>
+        <h1 className="text-4xl font-bold mb-2">{community?.name}</h1>
+        <p className="text-muted-foreground">{community?.description}</p>
       </div>
 
       <Separator className="mb-6" />
+
+      {/* Membership Warning for posting */}
+      {!community?.isJoined && (
+        <div className="bg-muted/50 border rounded-lg p-4 mb-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            You are viewing this community as a guest. 
+            <button 
+              onClick={handleJoinCommunity}
+              className="text-primary font-semibold ml-1 hover:underline"
+            >
+              Join now
+            </button> to share your thoughts!
+          </p>
+        </div>
+      )}
 
       {/* Empty State */}
       {posts.length === 0 ? (
@@ -299,23 +323,39 @@ export default function CommunityFeedPage() {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="gap-2"
+                    className="gap-2 cursor-pointer"
                     onClick={() => handleToggleLike(post.id)}
+                    disabled={!community?.isJoined}
                   >
-                    <Heart className={`h-4 w-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    <Heart 
+                      className={`h-4 w-4 ${post.isLiked ? 'text-red-500' : ''}`} 
+                      fill={post.isLiked ? "currentColor" : "none"}
+                    />
                     <span>{post.likes}</span>
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="gap-2"
-                    asChild
-                  >
-                    <Link href={`/communities/${communityId}/posts/${post.id}`}>
+                  {community?.isJoined ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 cursor-pointer"
+                      asChild
+                    >
+                      <Link href={`/communities/${communityId}/posts/${post.id}`}>
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.comments}</span>
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 cursor-default"
+                      disabled
+                    >
                       <MessageCircle className="h-4 w-4" />
                       <span>{post.comments}</span>
-                    </Link>
-                  </Button>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -325,4 +365,3 @@ export default function CommunityFeedPage() {
     </div>
   );
 }
-

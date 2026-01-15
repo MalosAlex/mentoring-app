@@ -1,4 +1,4 @@
-﻿namespace MentoringApp.Core.Models;
+namespace MentoringApp.Core.Models;
 
 public class CommunityResponse
 {
@@ -6,5 +6,5 @@ public class CommunityResponse
     public string Name { get; set; }
     public string Description { get; set; }
     public bool IsJoined { get; set; }
-    public int memberCount { get; set; }
+    public int MemberCount { get; set; }
 }

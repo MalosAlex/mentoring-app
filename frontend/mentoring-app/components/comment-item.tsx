@@ -1,78 +1,137 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, MessageCircle, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { type Comment } from "@/lib/types";
 import { formatTimestamp } from "@/lib/helper";
+import { Comment } from "@/lib/types";
+import { useAuth } from "@/contexts/auth-context";
+import { reactToComment } from "@/lib/posts-service";
+import { useParams } from "next/navigation";
 
 interface CommentItemProps {
   comment: Comment;
   depth?: number;
   onReply?: (parentCommentId: string, replyContent: string) => void;
+  disabled?: boolean;
 }
 
-export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [likes, setLikes] = useState(comment.likes);
+export function CommentItem({
+  comment,
+  depth = 0,
+  onReply,
+  disabled = false,
+}: CommentItemProps) {
+  const params = useParams();
+  const communityId = params.id as string;
+  const [isLiked, setIsLiked] = useState(comment.isLiked || false);
+  const [likes, setLikes] = useState(comment.likes || 0);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [localReplies, setLocalReplies] = useState<Comment[]>(comment.replies || []);
+  const [localReplies, setLocalReplies] = useState<Comment[]>(
+    comment.replies || []
+  );
+  const { user } = useAuth();
 
-  const handleToggleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
+  // Sync state with props
+  useEffect(() => {
+    setIsLiked(comment.isLiked || false);
+    setLikes(comment.likes || 0);
+    if (comment.replies) {
+      setLocalReplies(comment.replies);
+    }
+  }, [comment.isLiked, comment.likes, comment.replies]);
+
+  const handleToggleLike = async () => {
+    if (disabled || !communityId) return;
+
+    const wasLiked = isLiked;
+    const currentLikes = typeof likes === "number" && !isNaN(likes) ? likes : 0;
+
+    // Optimistic update
+    setIsLiked(!wasLiked);
+    setLikes(wasLiked ? currentLikes - 1 : currentLikes + 1);
+
+    try {
+      const numericCommunityId = parseInt(communityId, 10);
+      const numericCommentId = parseInt(comment.id, 10);
+      const result = await reactToComment(
+        numericCommunityId,
+        numericCommentId,
+        "like"
+      );
+      if (result.success && result.data) {
+        setIsLiked(result.data.isLiked);
+        setLikes(result.data.totalReactions || 0);
+      } else {
+        setIsLiked(wasLiked);
+        setLikes(currentLikes);
+      }
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+      setIsLiked(wasLiked);
+      setLikes(currentLikes);
+    }
   };
 
   const handleSubmitReply = () => {
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || disabled) return;
 
-    const newReply: Comment = {
-      id: `r${Date.now()}`,
-      postId: comment.postId,
-      author: {
-        name: "John Doe", // Current user (mock)
-      },
-      content: replyText,
-      timestamp: new Date(),
-      likes: 0,
-      replies: [],
-    };
-
-    setLocalReplies([...localReplies, newReply]);
-    setReplyText("");
-    setShowReplyForm(false);
-    
-    // Also call parent handler if provided
+    // Call parent handler if provided
     if (onReply) {
       onReply(comment.id, replyText);
+      setReplyText("");
+      setShowReplyForm(false);
+    } else {
+      // Fallback for local update if no parent handler
+      const newReply: Comment = {
+        id: `r${Date.now()}`,
+        postId: comment.postId,
+        author: {
+          name: user?.fullName || "User",
+        },
+        content: replyText,
+        timestamp: new Date(),
+        likes: 0,
+        replies: [],
+      };
+
+      setLocalReplies([...localReplies, newReply]);
+      setReplyText("");
+      setShowReplyForm(false);
     }
   };
 
   const handleNestedReply = (parentCommentId: string, replyContent: string) => {
-    // Handle nested replies by updating the specific reply
-    setLocalReplies(localReplies.map(reply => {
-      if (reply.id === parentCommentId) {
-        const newNestedReply: Comment = {
-          id: `r${Date.now()}`,
-          postId: comment.postId,
-          author: {
-            name: "John Doe",
-          },
-          content: replyContent,
-          timestamp: new Date(),
-          likes: 0,
-          replies: [],
-        };
-        return {
-          ...reply,
-          replies: [...(reply.replies || []), newNestedReply]
-        };
-      }
-      return reply;
-    }));
+    if (onReply) {
+      onReply(parentCommentId, replyContent);
+    } else {
+      // Handle nested replies locally if no parent handler
+      setLocalReplies(
+        localReplies.map((reply) => {
+          if (reply.id === parentCommentId) {
+            const newNestedReply: Comment = {
+              id: `r${Date.now()}`,
+              postId: comment.postId,
+              author: {
+                name: user?.fullName || "User",
+              },
+              content: replyContent,
+              timestamp: new Date(),
+              likes: 0,
+              replies: [],
+            };
+            return {
+              ...reply,
+              replies: [...(reply.replies || []), newNestedReply],
+            };
+          }
+          return reply;
+        })
+      );
+    }
   };
 
   // Limit nesting depth for better UX
@@ -81,13 +140,18 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
 
   return (
     <div className="space-y-4">
-      <div 
+      <div
         style={{ marginLeft: `${indent}rem` }}
-        className={`flex gap-3 py-2 ${depth > 0 ? 'border-l-2 border-muted pl-4' : ''}`}
+        className={`flex gap-3 py-2 ${
+          depth > 0 ? "border-l-2 border-muted pl-4" : ""
+        }`}
       >
         <Avatar className="h-8 w-8">
           <AvatarFallback className="text-xs">
-            {comment.author.name.split(' ').map(n => n[0]).join('')}
+            {comment.author.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
@@ -105,7 +169,10 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
               className="h-7 gap-1 text-xs"
               onClick={handleToggleLike}
             >
-              <Heart className={`h-3 w-3 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+              <Heart
+                className={`h-3 w-3 ${isLiked ? "text-red-500" : ""}`}
+                fill={isLiked ? "currentColor" : "none"}
+              />
               <span>{likes}</span>
             </Button>
             <Button
@@ -113,12 +180,13 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
               size="sm"
               className="h-7 gap-1 text-xs"
               onClick={() => setShowReplyForm(!showReplyForm)}
+              disabled={disabled}
             >
               <MessageCircle className="h-3 w-3" />
               <span>Reply</span>
             </Button>
           </div>
-          
+
           {showReplyForm && (
             <div className="mt-3 space-y-2">
               <Textarea
@@ -128,8 +196,8 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
                 className="min-h-[60px] text-sm resize-none"
               />
               <div className="flex justify-end gap-2">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     setShowReplyForm(false);
@@ -138,7 +206,7 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   size="sm"
                   onClick={handleSubmitReply}
                   disabled={!replyText.trim()}
@@ -161,6 +229,7 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
               comment={reply}
               depth={depth + 1}
               onReply={handleNestedReply}
+              disabled={disabled}
             />
           ))}
         </div>
@@ -168,4 +237,3 @@ export function CommentItem({ comment, depth = 0, onReply }: CommentItemProps) {
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-﻿using MentoringApp.Core.Abstractions;
+using MentoringApp.Core.Abstractions;
 using MentoringApp.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

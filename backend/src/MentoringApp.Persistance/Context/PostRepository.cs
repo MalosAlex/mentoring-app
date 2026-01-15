@@ -22,40 +22,84 @@ internal class PostRepository : IPostRepository
 
     public async Task<List<Post>> GetByCommunityIdAsync(int communityId, int skip, int take)
     {
-        return await _context.Posts
+        var posts = await _context.Posts
             .AsNoTracking()
             .Where(p => p.CommunityId == communityId)
             .Include(p => p.User)
             .Include(p => p.Reactions)
-            .Include(p => p.Comments).ThenInclude(c => c.User)
-            .Include(p => p.Comments).ThenInclude(c => c.Reactions)
-            .AsSplitQuery()
             .OrderByDescending(p => p.CreatedAt)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
+
+        if (posts.Any())
+        {
+            var postIds = posts.Select(p => p.Id).ToList();
+            var comments = await _context.PostComments
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .Include(c => c.User)
+                .Include(c => c.Reactions)
+                .ToListAsync();
+
+            foreach (var post in posts)
+            {
+                post.Comments = comments.Where(c => c.PostId == post.Id).ToList();
+            }
+        }
+
+        return posts;
     }
 
     public async Task<List<Post>> GetByUserIdAsync(int userId, int skip, int take)
     {
-        return await _context.Posts
+        var posts = await _context.Posts
             .AsNoTracking()
             .Where(p => p.UserId == userId)
             .Include(p => p.User)
             .Include(p => p.Reactions)
-            .Include(p => p.Comments)
-                .ThenInclude(c => c.User)
-            .Include(p => p.Comments)
-                .ThenInclude(c => c.Reactions)
-            .AsSplitQuery()
             .OrderByDescending(p => p.CreatedAt)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
+
+        if (posts.Any())
+        {
+            var postIds = posts.Select(p => p.Id).ToList();
+            var comments = await _context.PostComments
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .Include(c => c.User)
+                .Include(c => c.Reactions)
+                .ToListAsync();
+
+            foreach (var post in posts)
+            {
+                post.Comments = comments.Where(c => c.PostId == post.Id).ToList();
+            }
+        }
+
+        return posts;
     }
 
     public async Task<Post?> GetByIdAsync(int postId)
-        => await _context.Posts.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == postId);
+    {
+        var post = await _context.Posts
+            .Include(p => p.User)
+            .Include(p => p.Reactions)
+            .FirstOrDefaultAsync(p => p.Id == postId);
+
+        if (post != null)
+        {
+            post.Comments = await _context.PostComments
+                .Where(c => c.PostId == postId)
+                .Include(c => c.User)
+                .Include(c => c.Reactions)
+                .ToListAsync();
+        }
+
+        return post;
+    }
 
     public async Task<PostReaction?> GetReactionAsync(int postId, int userId)
         => await _context.PostReactions.FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == userId);
@@ -76,18 +120,17 @@ internal class PostRepository : IPostRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteReactionAsync(PostReaction reaction)
+    {
+        _context.PostReactions.Remove(reaction);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<int> CountReactionsAsync(int postId)
         => await _context.PostReactions.CountAsync(r => r.PostId == postId);
 
-    public async Task<PostComment> AddCommentAsync(PostComment comment)
-    {
-        await _context.PostComments.AddAsync(comment);
-        await _context.SaveChangesAsync();
-        return comment;
-    }
-
     public async Task<PostComment?> GetCommentByIdAsync(int commentId)
-        => await _context.PostComments.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == commentId);
+        => await _context.PostComments.FirstOrDefaultAsync(c => c.Id == commentId);
 
     public async Task<CommentReaction?> GetCommentReactionAsync(int commentId, int userId)
         => await _context.CommentReactions.FirstOrDefaultAsync(r => r.CommentId == commentId && r.UserId == userId);
@@ -108,7 +151,19 @@ internal class PostRepository : IPostRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteCommentReactionAsync(CommentReaction reaction)
+    {
+        _context.CommentReactions.Remove(reaction);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<int> CountCommentReactionsAsync(int commentId)
         => await _context.CommentReactions.CountAsync(r => r.CommentId == commentId);
-}
 
+    public async Task<PostComment> AddCommentAsync(PostComment comment)
+    {
+        await _context.PostComments.AddAsync(comment);
+        await _context.SaveChangesAsync();
+        return comment;
+    }
+}
