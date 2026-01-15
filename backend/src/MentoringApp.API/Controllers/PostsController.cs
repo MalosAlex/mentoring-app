@@ -53,15 +53,17 @@ public class PostsController : ControllerBase
         return Ok(response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetPost(int communityId, int id)
+    [HttpGet("~/api/users/{userId}/posts")]
+
+
+
+    public async Task<IActionResult> GetPostsByUser(int userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
-        var userId = GetUserIdFromToken();
-        _logger.LogInformation("User {UserId} fetching post {PostId}", userId, id);
-
-        var response = await _postService.GetByIdAsync(id, userId);
-
+        var currentUserId = GetUserIdFromToken();
+        _logger.LogInformation("Fetching posts for user {UserId}", userId);
+        var response = await _postService.GetByUserAsync(userId, pageNumber, pageSize, currentUserId);
         return Ok(response);
+
     }
 
     [HttpPost]
