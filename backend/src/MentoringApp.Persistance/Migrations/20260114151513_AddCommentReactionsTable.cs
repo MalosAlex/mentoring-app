@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -56,43 +56,25 @@ namespace MentoringApp.Persistance.Migrations
                     ALTER TABLE [PostComments] DROP COLUMN [UserId1];
             ");
 
-            migrationBuilder.CreateTable(
-                name: "CommentReactions",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CommentId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ReactionType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CommentReactions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CommentReactions_PostComments_CommentId",
-                        column: x => x.CommentId,
-                        principalTable: "PostComments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CommentReactions_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id");
-                });
+            // Check if table exists before creating it
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'CommentReactions')
+                BEGIN
+                    CREATE TABLE [CommentReactions] (
+                        [Id] int NOT NULL IDENTITY,
+                        [CommentId] int NOT NULL,
+                        [UserId] int NOT NULL,
+                        [ReactionType] nvarchar(32) NOT NULL,
+                        [CreatedAt] datetime2 NOT NULL DEFAULT (GETUTCDATE()),
+                        CONSTRAINT [PK_CommentReactions] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_CommentReactions_PostComments_CommentId] FOREIGN KEY ([CommentId]) REFERENCES [PostComments] ([Id]) ON DELETE CASCADE,
+                        CONSTRAINT [FK_CommentReactions_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id])
+                    );
 
-            migrationBuilder.CreateIndex(
-                name: "IX_CommentReactions_CommentId_UserId",
-                table: "CommentReactions",
-                columns: new[] { "CommentId", "UserId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CommentReactions_UserId",
-                table: "CommentReactions",
-                column: "UserId");
+                    CREATE UNIQUE INDEX [IX_CommentReactions_CommentId_UserId] ON [CommentReactions] ([CommentId], [UserId]);
+                    CREATE INDEX [IX_CommentReactions_UserId] ON [CommentReactions] ([UserId]);
+                END
+            ");
         }
 
         /// <inheritdoc />

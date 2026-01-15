@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,37 +10,31 @@ namespace MentoringApp.Persistance.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_PostComments_Users_UserId",
-                table: "PostComments");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_PostComments_Users_UserId')
+                    ALTER TABLE [PostComments] DROP CONSTRAINT [FK_PostComments_Users_UserId];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PostComments_Users_UserId1",
-                table: "PostComments");
+                IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_PostComments_Users_UserId1')
+                    ALTER TABLE [PostComments] DROP CONSTRAINT [FK_PostComments_Users_UserId1];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PostReactions_Users_UserId",
-                table: "PostReactions");
+                IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_PostReactions_Users_UserId')
+                    ALTER TABLE [PostReactions] DROP CONSTRAINT [FK_PostReactions_Users_UserId];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PostReactions_Users_UserId1",
-                table: "PostReactions");
+                IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_PostReactions_Users_UserId1')
+                    ALTER TABLE [PostReactions] DROP CONSTRAINT [FK_PostReactions_Users_UserId1];
 
-            migrationBuilder.DropIndex(
-                name: "IX_PostReactions_UserId1",
-                table: "PostReactions");
+                IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PostReactions_UserId1' AND object_id = OBJECT_ID('PostReactions'))
+                    DROP INDEX [IX_PostReactions_UserId1] ON [PostReactions];
 
-            migrationBuilder.DropIndex(
-                name: "IX_PostComments_UserId1",
-                table: "PostComments");
+                IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_PostComments_UserId1' AND object_id = OBJECT_ID('PostComments'))
+                    DROP INDEX [IX_PostComments_UserId1] ON [PostComments];
 
-            migrationBuilder.DropColumn(
-                name: "UserId1",
-                table: "PostReactions");
+                IF EXISTS (SELECT * FROM sys.columns WHERE name = 'UserId1' AND object_id = OBJECT_ID('PostReactions'))
+                    ALTER TABLE [PostReactions] DROP COLUMN [UserId1];
 
-            migrationBuilder.DropColumn(
-                name: "UserId1",
-                table: "PostComments");
+                IF EXISTS (SELECT * FROM sys.columns WHERE name = 'UserId1' AND object_id = OBJECT_ID('PostComments'))
+                    ALTER TABLE [PostComments] DROP COLUMN [UserId1];
+            ");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_PostComments_Users_UserId",
