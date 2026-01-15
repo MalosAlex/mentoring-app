@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { Plus, Image as ImageIcon, X, Loader2 } from "lucide-react";
-import Image from "next/image";
 import {
     Dialog,
     DialogContent,
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { PostMedia } from "@/components/post-media";
 import { createPost, type PostResponse } from "@/lib/posts-service";
 import { useAuth } from "@/contexts/auth-context";
 import { getInitials } from "@/lib/helper";
@@ -232,15 +232,10 @@ export function CreatePostButton({
               </div>
             </div>
 
-            {/* Image Preview */}
+            {/* Media Preview */}
             {imagePreview && (
               <div className="relative w-full aspect-video rounded-lg overflow-hidden border">
-                <Image
-                  src={imagePreview}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
+                <PostMedia src={imagePreview} alt="Preview" />
                 <Button
                   variant="destructive"
                   size="icon"
@@ -266,7 +261,7 @@ export function CreatePostButton({
               >
                 <ImageIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Drag and drop an image here, or
+                  Drag and drop an image or video here, or
                 </p>
                 <input
                   ref={fileInputRef}

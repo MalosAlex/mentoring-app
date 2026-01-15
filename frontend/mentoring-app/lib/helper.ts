@@ -30,6 +30,12 @@ export function getInitials(name: string): string {
   return initials.slice(0, 2);
 }
 
+export function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+  return videoExtensions.some(ext => url.toLowerCase().endsWith(ext));
+}
+
 // Convert backend PostResponse to frontend Post type
   export const mapPostResponseToPost = (postResponse: PostResponse): Post => {
     // Construct full URL for images (backend serves static files)
