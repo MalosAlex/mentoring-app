@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatTimestamp } from "@/lib/helper";
 import { Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { CreatePostButton } from "@/components/create-post-button";
+import { PostMedia } from "@/components/post-media";
 import { usePosts } from "@/contexts/posts-context";
 import { getPosts, reactToPost, type PostResponse } from "@/lib/posts-service";
 import { getCommunityById, joinCommunity } from "@/lib/communities-service";
@@ -307,13 +307,7 @@ export default function CommunityFeedPage() {
                 
                 {post.image && (
                   <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
-                    <Image
-                      src={post.image}
-                      alt="Post image"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
+                    <PostMedia src={post.image} alt="Post media" />
                   </div>
                 )}
 

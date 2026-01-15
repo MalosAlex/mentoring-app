@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatTimestamp } from "@/lib/helper";
 import { Comment, Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentItem } from "@/components/comment-item";
+import { PostMedia } from "@/components/post-media";
 import {
   getPostById,
   reactToPost,
@@ -275,13 +275,7 @@ export default function PostDetailPage() {
 
           {post.image && (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
-              <Image
-                src={post.image}
-                alt="Post image"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              <PostMedia src={post.image} alt="Post media" />
             </div>
           )}
 

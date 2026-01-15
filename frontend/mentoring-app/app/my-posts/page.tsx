@@ -2,12 +2,12 @@
 
 import { BookOpen, Heart, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { PostMedia } from "@/components/post-media";
 import { usePosts } from "@/contexts/posts-context";
 import { formatTimestamp } from "@/lib/helper";
 import { useAuth } from "@/contexts/auth-context";
@@ -89,13 +89,7 @@ export default function MyPostsPage() {
                   
                   {post.image && (
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
-                      <Image
-                        src={post.image}
-                        alt="Post image"
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
+                      <PostMedia src={post.image} alt="Post media" />
                     </div>
                   )}
 
@@ -127,4 +121,3 @@ export default function MyPostsPage() {
     </div>
   );
 }
-
