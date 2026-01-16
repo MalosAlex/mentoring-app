@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { formatTimestamp } from "@/lib/helper";
+import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
 import { Comment, Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,33 +39,6 @@ export default function PostDetailPage() {
   const [likes, setLikes] = useState(0);
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-
-  // Convert backend PostResponse to frontend Post type
-  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
-    const imageUrl = postResponse.mediaUrl
-      ? `http://localhost:5216${postResponse.mediaUrl}`
-      : undefined;
-
-    // Ensure the date is parsed correctly from UTC string
-    const timestamp =
-      typeof postResponse.createdAt === "string"
-        ? new Date(postResponse.createdAt)
-        : new Date(postResponse.createdAt);
-
-    return {
-      id: postResponse.id.toString(),
-      communityId: postResponse.communityId.toString(),
-      author: {
-        name: postResponse.authorName,
-      },
-      content: postResponse.caption,
-      image: imageUrl,
-      timestamp: timestamp,
-      likes: postResponse.reactionCount,
-      isLiked: postResponse.isLiked,
-      comments: postResponse.comments.length,
-    };
-  };
 
   // Convert backend PostCommentResponse to frontend Comment type
   const mapCommentResponseToComment = (c: PostCommentResponse): Comment => ({

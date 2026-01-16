@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Heart, MessageCircle, ImagePlus, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
-import { formatTimestamp } from "@/lib/helper";
+import { formatTimestamp, mapPostResponseToPost } from "@/lib/helper";
 import { Post, Community } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,33 +26,6 @@ export default function CommunityFeedPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-
-  // Convert backend PostResponse to frontend Post type
-  const mapPostResponseToPost = (postResponse: PostResponse): Post => {
-    // Construct full URL for images (backend serves static files)
-    const imageUrl = postResponse.mediaUrl 
-      ? `http://localhost:5216${postResponse.mediaUrl}` 
-      : undefined;
-    
-    // Ensure the date is parsed correctly from UTC string
-    const timestamp = typeof postResponse.createdAt === 'string' 
-      ? new Date(postResponse.createdAt) 
-      : new Date(postResponse.createdAt);
-
-    return {
-      id: postResponse.id.toString(),
-      communityId: postResponse.communityId.toString(),
-      author: {
-        name: postResponse.authorName,
-      },
-      content: postResponse.caption,
-      image: imageUrl,
-      timestamp: timestamp,
-      likes: postResponse.reactionCount,
-      isLiked: postResponse.isLiked,
-      comments: postResponse.comments.length,
-    };
-  };
 
   // Fetch posts and community from API
   useEffect(() => {

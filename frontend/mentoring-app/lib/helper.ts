@@ -37,23 +37,24 @@ export function isVideoUrl(url?: string): boolean {
 }
 
 // Convert backend PostResponse to frontend Post type
-  export const mapPostResponseToPost = (postResponse: PostResponse): Post => {
-    // Construct full URL for images (backend serves static files)
-    const imageUrl = postResponse.mediaUrl 
-      ? `https://localhost:7117${postResponse.mediaUrl}` 
-      : undefined;
-    
-    return {
-      id: postResponse.id.toString(),
-      communityId: postResponse.communityId.toString(),
-      author: {
-        name: postResponse.authorName,
-      },
-      content: postResponse.caption,
-      image: imageUrl,
-      timestamp: new Date(postResponse.createdAt),
-      likes: postResponse.reactionCount,
-      isLiked: false, // TODO: Get from backend if available
-      comments: postResponse.comments.length,
-    };
+export const mapPostResponseToPost = (postResponse: PostResponse): Post => {
+  // Construct full URL for images (backend serves static files)
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  const imageUrl = postResponse.mediaUrl 
+    ? `${baseUrl}${postResponse.mediaUrl}` 
+    : undefined;
+  
+  return {
+    id: postResponse.id.toString(),
+    communityId: postResponse.communityId.toString(),
+    author: {
+      name: postResponse.authorName,
+    },
+    content: postResponse.caption,
+    image: imageUrl,
+    timestamp: new Date(postResponse.createdAt),
+    likes: postResponse.reactionCount,
+    isLiked: postResponse.isLiked, // Now available from backend
+    comments: postResponse.comments.length,
   };
+};
